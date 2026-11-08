@@ -1,0 +1,17 @@
+{
+  "name": "cartoon-studio",
+  "version": "14.0.0",
+  "description": "استوديو الكرتون — صانع أفلام كرتونية تعليمية بالعربية يعمل في المتصفح",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "check": "node scripts/check.mjs",
+    "build": "node scripts/build.mjs",
+    "ci": "npm run check && npm run build"
+  }
+}
