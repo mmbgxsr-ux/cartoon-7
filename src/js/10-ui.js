@@ -6,6 +6,16 @@ function opts(map,sel){return Object.keys(map).map(function(k){return '<option v
 function actorOpts(sel){return P.actors.map(function(a){return '<option value="'+a.id+'"'+(a.id===sel?' selected':'')+'>'+esc(a.name)+'</option>'}).join('')}
 function num(label,m,id,k,v,min,max,step){return '<div><label class="l">'+label+'</label><input type="number" data-m="'+m+'" data-id="'+id+'" data-k="'+k+'" value="'+v+'" min="'+min+'" max="'+max+'" step="'+step+'"></div>'}
 
+function fixLabels(root){
+  Array.prototype.forEach.call(root.querySelectorAll('label:not([for])'),function(l){
+    if(l.querySelector('input,select,textarea'))return;
+    var c=l.nextElementSibling;
+    if(!c||!/^(INPUT|SELECT|TEXTAREA)$/.test(c.tagName)){var cs=l.parentNode?l.parentNode.querySelectorAll('input,select,textarea'):[];c=cs.length===1?cs[0]:null}
+    if(!c)return;
+    if(!c.id)c.id='fld'+(++fixLabels.n);
+    l.setAttribute('for',c.id)})
+}
+fixLabels.n=0;
 function A(id,name,kind,color,accent){return{id:id,name:name,kind:kind,color:color,accent:accent}}
 function M(a,t,d,x,y,style,curve){return{type:'move',actor:a,t:t,d:d,x:x,y:y,style:style||'walk',curve:curve||'auto'}}
 function Y(a,t,d,text,emo){return{type:'say',actor:a,t:t,d:d,text:text,emo:emo}}
@@ -33,7 +43,7 @@ function planHTML(){
   h+='<p class="hint">كل بطاقة مشهد. اضغط الصورة لمشاهدته، و«تحرير» لضبط الحركة والحوار.</p>';
   h+='<div class="row"><select id="tplSel" style="flex:1" aria-label="قالب">'+TPL.map(function(t,i){return '<option value="'+i+'">'+t.n+'</option>'}).join('')+'</select><button class="btn sm" data-a="use-tpl">ابدأ من قالب</button></div>';
   P.scenes.forEach(function(s,i){
-    h+='<div class="card" '+(i===S.si?'aria-current="true"':'')+'><canvas width="320" height="180" data-thumb="'+i+'" data-a="sel-scene" data-i="'+i+'"></canvas><div class="f">'
+    h+='<div class="card" '+(i===S.si?'aria-current="true"':'')+'><canvas width="320" height="180" data-thumb="'+i+'" data-a="sel-scene" data-i="'+i+'" tabindex="0" role="button" aria-label="عرض المشهد: '+esc(s.title)+'"></canvas><div class="f">'
      +'<input type="text" data-m="scn" data-id="'+s.id+'" data-k="title" value="'+esc(s.title)+'" aria-label="عنوان المشهد">'
      +'<div class="hint">'+(s.kind==='card'?(s.mode==='credits'?'شارات':'عنوان')+' · '+s.dur+' ث':bgName(s)+' · '+s.dur+' ث · '+s.cast.length+' شخصيات')+'</div>'
      +'<div class="row"><button class="btn sm" data-a="go-prod" data-i="'+i+'">تحرير</button>'

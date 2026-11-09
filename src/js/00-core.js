@@ -4,6 +4,8 @@ function $(s){return document.querySelector(s)}
 function uid(){return Math.random().toString(36).slice(2,8)}
 function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
 function lerp(a,b,t){return a+(b-a)*t}
+function own(m,k){return typeof k==='string'&&Object.prototype.hasOwnProperty.call(m,k)}
+function cleanId(v){var s=String(v==null?'':v).replace(/[^A-Za-z0-9_-]/g,'').slice(0,12);return s&&!(s in Object.prototype)?s:uid()}
 function ease(t){return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2}
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 var KINDS={cat:'قط',boy:'ولد',girl:'فتاة',rabbit:'أرنب',robot:'روبوت'};

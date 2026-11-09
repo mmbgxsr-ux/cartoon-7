@@ -73,7 +73,10 @@ function revHTML(){
 }
 function renderPanel(){
   Array.prototype.forEach.call(document.querySelectorAll('#tabs button'),function(b){b.setAttribute('aria-selected',b.dataset.v===S.tab)});
+  var fe=document.activeElement,fk=fe&&fe.tagName==='CANVAS'&&fe.dataset&&fe.dataset.thumb!=null?+fe.dataset.thumb:null;
   $('#panel').innerHTML=S.tab==='plan'?planHTML():S.tab==='chars'?charsHTML():S.tab==='out'?outHTML():S.tab==='rev'?revHTML():prodHTML();
+  fixLabels($('#panel'));
+  if(fk!=null){var fn2=document.querySelector('#panel canvas[data-thumb="'+fk+'"]');if(fn2&&fn2.focus)fn2.focus()}
   drawThumbs();
 }
 function drawThumbs(){

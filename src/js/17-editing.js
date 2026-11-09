@@ -70,7 +70,8 @@ $('#panel').addEventListener('input',function(e){
 $('#panel').addEventListener('change',function(e){var m=e.target.dataset.m,k=e.target.dataset.k;
   if(m==='step'&&(k==='t'||k==='curve'||k==='style'))renderPanel();else if(m==='scn'||m==='proj'||m==='actor')drawThumbs()});
 $('#scrub').addEventListener('input',function(e){if(S.rec)return;S.playing=false;stopVoices();S.T=parseFloat(e.target.value);var sg=segAt(S.T);if(sg.i!==S.si){S.si=sg.i;renderStrip();if(S.tab==='prod'||S.tab==='rev')renderPanel()}drawNow();updateUI()});
-document.addEventListener('keydown',function(e){if(e.code==='Space'&&!/INPUT|SELECT|TEXTAREA|BUTTON/.test(e.target.tagName)){e.preventDefault();play(false)}});
+document.addEventListener('keydown',function(e){if(e.code==='Space'&&!/INPUT|SELECT|TEXTAREA|BUTTON/.test(e.target.tagName)&&!(e.target.getAttribute&&e.target.getAttribute('role')==='button')){e.preventDefault();play(false)}});
+document.addEventListener('keydown',function(e){var t=e.target;if((e.key==='Enter'||e.key===' ')&&t&&t.getAttribute&&t.getAttribute('role')==='button'&&t.tagName!=='BUTTON'){e.preventDefault();t.click()}});
 
 document.addEventListener('keydown',function(e){
   var tg=/INPUT|SELECT|TEXTAREA/.test(e.target.tagName);
