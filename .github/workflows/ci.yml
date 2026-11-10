@@ -10,7 +10,8 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
       # Optional dependency: with Playwright installed, test/browser.test.mjs runs in real Chromium.
-      - run: npm i --no-save playwright && npx playwright install --with-deps chromium
+      # Optional locally, mandatory here: ESLint runs scripts/lint.mjs (CI=true makes a missing eslint fail).
+      - run: npm i --no-save eslint@10 playwright && npx playwright install --with-deps chromium
       - run: npm run ci
       - uses: actions/upload-artifact@v4
         with: { name: cartoon-studio, path: dist/cartoon-studio.html }

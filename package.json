@@ -11,9 +11,10 @@
   "scripts": {
     "dev": "node scripts/serve.mjs",
     "check": "node scripts/check.mjs",
+    "lint": "node scripts/lint.mjs",
     "test": "node --test",
     "vendor": "node scripts/vendor.mjs",
     "build": "node scripts/build.mjs",
-    "ci": "npm run check && npm test && npm run build"
+    "ci": "npm run check && npm run lint && npm test && npm run build"
   }
 }
