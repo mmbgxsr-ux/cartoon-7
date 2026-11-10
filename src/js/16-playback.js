@@ -1,7 +1,13 @@
 'use strict';
 /* ---------- playback ---------- */
+/* The audio clock is the master: sounds are scheduled on AudioContext time, so after a main-thread stall the
+   picture must jump to where the audio already is. While the context is not running (e.g. suspended by autoplay
+   policy) fall back to the frame clock and keep AU.base continuous so audio can take over without a jump. */
 function tick(now){
-  if(!S.playing)return;var prev=S.T;S.T+=Math.min(.1,(now-S.last)/1000);S.last=now;if(S.T>S.end)S.T=S.end;fireEv(prev,S.T);musicTick(S.T);
+  if(!S.playing)return;var prev=S.T,c=AU.ctx,dt=(now-S.last)/1000;S.last=now;
+  if(c&&c.state==='running')S.T=Math.max(prev,c.currentTime-AU.base);
+  else{S.T+=Math.min(.1,dt);if(c)AU.base=c.currentTime-S.T}
+  if(S.T>S.end)S.T=S.end;fireEv(prev,S.T);musicTick(S.T);
   if(S.T>=S.end){S.T=S.end;S.playing=false}
   drawNow();updateUI();if(S.playing)requestAnimationFrame(tick);else if(S.rec)endRec(false)
 }
