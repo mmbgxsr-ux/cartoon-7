@@ -1,15 +1,23 @@
 'use strict';
 /* ---------- offline frame-by-frame MP4 export (WebCodecs + mp4-muxer) ---------- */
+/* mp4-muxer source: embedded by the build (works offline), else src/vendor (dev server), else the CDN. */
+function muxerEmbedded(){return !!document.getElementById('vendor-mp4-muxer')}
+async function loadMuxer(){
+  var el=document.getElementById('vendor-mp4-muxer');
+  if(el)return import(URL.createObjectURL(new Blob([el.textContent],{type:'text/javascript'})));
+  try{return await import('./src/vendor/mp4-muxer.mjs')}catch(e){}
+  return import('https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/build/mp4-muxer.mjs');
+}
 async function offlineExport(){
   if(S.rec||S.playing)return;
   if(!window.VideoEncoder||!window.AudioEncoder||!window.OfflineAudioContext||!window.AudioData){toast('التصدير عالي الجودة يحتاج متصفح Chrome أو Edge حديثًا');return}
   var qh=parseInt(P.qh)||720,fps=parseInt(P.fps)||30,W2=Math.round(qh*16/9/2)*2,H2=qh,SR=48000,err=null;
   var ks=['ctx','master','listen','sfx','mus','dest','noise','base','nextE','voices'],snap={};ks.forEach(function(k){snap[k]=AU[k]});
-  S.rec={rec:{state:'inactive'},cancel:false,stopping:false,hq:true};renderStrip();toast('جارٍ التجهيز، يلزم اتصال بالإنترنت لتحميل مكتبة MP4');
+  S.rec={rec:{state:'inactive'},cancel:false,stopping:false,hq:true};renderStrip();toast(muxerEmbedded()?'جارٍ التجهيز':'جارٍ التجهيز، قد يلزم اتصال بالإنترنت لتحميل مكتبة MP4');
   var ve=null,ae=null,wait=function(ms){return new Promise(function(r){setTimeout(r,ms)})},chk=function(){if(S.rec&&S.rec.cancel)throw 'cancel';if(err)throw err};
   try{
     auInit();await Promise.all(prepAll());stopVoices();
-    var M=await import('https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/build/mp4-muxer.mjs');
+    var M=await loadMuxer();
     var vcfg={codec:'avc1.64002A',width:W2,height:H2,bitrate:qh>=1080?12e6:qh<=480?4e6:8e6,framerate:fps},acfg={codec:'mp4a.40.2',sampleRate:SR,numberOfChannels:2,bitrate:128000};
     if(!(await VideoEncoder.isConfigSupported(vcfg)).supported||!(await AudioEncoder.isConfigSupported(acfg)).supported)throw new Error('الترميز H.264/AAC غير مدعوم هنا');
     var tgt=new M.ArrayBufferTarget(),mux=new M.Muxer({target:tgt,video:{codec:'avc',width:W2,height:H2},audio:{codec:'aac',numberOfChannels:2,sampleRate:SR},fastStart:'in-memory'});

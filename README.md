@@ -11,6 +11,8 @@
 ```bash
 npm run dev     # خادم محلي على http://localhost:5173
 npm run check   # فحص الملفات وصحة الكود
+npm test        # اختبارات المنطق (node --test)
+npm run vendor  # مرة واحدة: تنزيل mp4-muxer إلى src/vendor ثم ارفعه مع المشروع
 npm run build   # ينتج dist/index.html (ملف واحد مستقل)
 ```
 لا توجد تبعيات npm. الكود سكربتات عادية تُحمَّل بالترتيب المكتوب في `index.html`:
@@ -31,6 +33,6 @@ npm run build   # ينتج dist/index.html (ملف واحد مستقل)
 3. لإصدار نسخة: `git tag v14.0.1 && git push --tags`.
 
 ## ملاحظات
-- التصدير عالي الجودة يحمّل مكتبة `mp4-muxer` من jsdelivr أول مرة (يلزم إنترنت). خطة لاحقة: تضمينها محليًا.
+- التصدير عالي الجودة يستخدم مكتبة `mp4-muxer`. إن وُجد الملف `src/vendor/mp4-muxer.mjs` (بعد `npm run vendor`) يُدمج في النسخة المبنية ويعمل التصدير دون إنترنت؛ وإلا تُحمَّل المكتبة من jsdelivr عند أول تصدير.
 - يحتاج Chrome/Edge حديثًا لميزات WebCodecs.
 - الرخصة: MIT.
