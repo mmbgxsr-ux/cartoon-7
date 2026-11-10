@@ -12,6 +12,7 @@
 npm run dev     # خادم محلي على http://localhost:5173
 npm run check   # فحص الملفات وصحة الكود
 npm test        # اختبارات المنطق (node --test)
+                # + اختبار متصفح حقيقي إن ثبّتّ: npm i --no-save playwright
 npm run vendor  # مرة واحدة: تنزيل mp4-muxer إلى src/vendor ثم ارفعه مع المشروع
 npm run build   # ينتج dist/index.html (ملف واحد مستقل)
 ```

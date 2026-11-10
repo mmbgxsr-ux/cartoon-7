@@ -18,7 +18,7 @@ export function loadApp() {
   const store = Object.create(null);
   const sandbox = {
     console,
-    Math, JSON, Date, Object, Array, String, Number, RegExp, Promise, Float32Array, Uint8Array,
+    Math, JSON, Date, Object, Array, String, Number, RegExp, Promise, Float32Array, Uint8Array, Blob,
     setTimeout: () => 0, clearTimeout() {}, setInterval: () => 0, clearInterval() {},
     requestAnimationFrame: () => 0,
     performance: { now: () => 0 },
