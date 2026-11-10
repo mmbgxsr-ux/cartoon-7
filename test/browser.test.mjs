@@ -89,3 +89,19 @@ test("playback stays in sync with real time after the page stalls (audio clock i
   assert.ok(Math.abs(lag) < 0.35, `film clock drifted ${lag.toFixed(2)}s from real time`);
   assert.deepEqual(pageErrors, []);
 });
+
+test("built file embeds mp4-muxer and it loads offline from the page itself", { skip }, async (t) => {
+  const r = await page.evaluate(async () => {
+    const el = document.getElementById("vendor-mp4-muxer");
+    if (!el) return { embedded: false };
+    const M = await import(URL.createObjectURL(new Blob([el.textContent], { type: "text/javascript" })));
+    const target = new M.ArrayBufferTarget();
+    const mux = new M.Muxer({ target, video: { codec: "avc", width: 640, height: 360 }, fastStart: false });
+    mux.finalize();
+    const head = new Uint8Array(target.buffer).slice(0, 12);
+    return { embedded: true, api: [typeof M.Muxer, typeof M.ArrayBufferTarget], ftyp: String.fromCharCode(...head.slice(4, 8)) };
+  });
+  if (!r.embedded) return t.skip("src/vendor/mp4-muxer.mjs is not committed, so nothing is embedded");
+  assert.deepEqual(r.api, ["function", "function"]);
+  assert.equal(r.ftyp, "ftyp", "muxer should emit an MP4 container");
+});
