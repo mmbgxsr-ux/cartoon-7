@@ -152,3 +152,18 @@ test("crash banner: shows details, de-duplicates, offers a backup download, igno
 
   pageErrors.length = 0; // these errors were thrown on purpose
 });
+
+test("new animal characters (dog, bear, fox) can be added from the gallery and render", { skip }, async () => {
+  await page.locator('#tabs button[data-v="chars"]').click();
+  const names = ["ريكس", "دبدوب", "روبي"];
+  for (const n of names) await page.locator("button.gal", { hasText: n }).click();
+  await page.locator('#tabs button[data-v="chars"]').click();
+  const panel = await page.locator("#panel").innerHTML();
+  for (const n of names) assert.ok(panel.includes(n), "actor card missing: " + n);
+  const kinds = await page.locator('#panel select[data-k="kind"] option[selected]').allTextContents();
+  for (const k of ["كلب", "دب", "ثعلب"]) assert.ok(kinds.includes(k), "kind not selected for: " + k);
+  await seek(1);
+  const s = await canvasStats();
+  assert.ok(s.colours > 12 && s.lit > 500, "stage should still draw a real picture");
+  assert.deepEqual(pageErrors, []);
+});

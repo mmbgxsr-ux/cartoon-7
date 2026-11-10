@@ -153,3 +153,23 @@ test("recalc turns say/sfx steps into time-ordered audio events", () => {
   assert.ok(ev.some((e) => e.k === "blip"));
   for (let i = 1; i < ev.length; i++) assert.ok(ev[i].T >= ev[i - 1].T);
 });
+
+test("every character kind is registered everywhere it must be (names, voice pitch, skeleton, gallery)", () => {
+  const kinds = Object.keys(plain(app.KINDS));
+  for (const k of ["cat", "boy", "girl", "rabbit", "dog", "bear", "fox", "robot"]) assert.ok(kinds.includes(k), "missing kind " + k);
+  const pitch = plain(app.PITCH);
+  for (const k of kinds) assert.ok(typeof pitch[k] === "number" && pitch[k] > 0, "no voice pitch for " + k);
+  for (const g of plain(app.GAL)) assert.ok(kinds.includes(g.k), "gallery entry uses unknown kind " + g.k);
+  for (const k of ["dog", "bear", "fox"]) {
+    assert.equal(app.baseKind(k), "cat", k + " must share the cat skeleton");
+    assert.ok(plain(app.GAL).some((g) => g.k === k), "no gallery entry for " + k);
+  }
+});
+
+test("cleanProject keeps the new animal kinds", () => {
+  for (const kind of ["dog", "bear", "fox"]) {
+    const p = base();
+    p.actors[0].kind = kind;
+    assert.equal(plain(app.cleanProject(p)).actors[0].kind, kind);
+  }
+});

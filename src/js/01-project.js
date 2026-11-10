@@ -26,7 +26,7 @@ if(!P.fps)P.fps='30';
 if(!P.grade)P.grade='none';
 if(!P.dlg)P.dlg='bubble';
 var S={tab:'plan',si:0,T:0,playing:false,end:0,last:0};
-var SEG=[],TOTAL=1,EV=[],PITCH={cat:1.6,boy:1.1,girl:1.4,rabbit:1.9,robot:.7},DL=null,LAST=null;
+var SEG=[],TOTAL=1,EV=[],PITCH={cat:1.6,boy:1.1,girl:1.4,rabbit:1.9,dog:1.25,bear:.62,fox:1.75,robot:.7},DL=null,LAST=null;
 function recalc(){
   var t=0;SEG=P.scenes.map(function(s,i){var o={i:i,t0:t,t1:t+s.dur};t+=s.dur;return o});TOTAL=Math.max(1,t);
   EV=[];P.scenes.forEach(function(s,i){var t0=SEG[i].t0;s.steps.forEach(function(st){
