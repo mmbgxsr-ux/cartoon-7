@@ -29,7 +29,71 @@ function drawImgActor(g,a,p,T){
     else if(e==='love')sy*=1+Math.abs(Math.sin(T*6))*.02}
   if(p.act==='sit')sy*=.8;if(p.act==='wave'||p.act==='clap')rot+=Math.sin(T*9)*.04;
   if(p.lift>8){sy*=1.06;sx*=.96}
-  g.translate(dx,0);g.rotate(rot);g.scale(sx,sy);g.drawImage(im,-w/2,-h,w,h);
+  var tc=!hasEmo&&EMOTINT[p.emo]?tintedImg(im,EMOTINT[p.emo],a.id+':'+p.emo):im;
+  g.translate(dx,0);g.rotate(rot);g.scale(sx,sy);g.drawImage(tc,-w/2,-h,w,h);
+  if(!hasEmo&&p.emo&&p.emo!=='neutral')imgExtras(g,p.emo,w,h,T);
+}
+var EMOTINT={angry:'rgba(255,50,30,.28)',sad:'rgba(80,110,255,.16)',scared:'rgba(210,235,255,.22)',sleepy:'rgba(40,50,130,.14)'};
+var TINTC={};
+function tintedImg(im,col,key){
+  var t=TINTC[key];
+  if(!t||t.im!==im||t.col!==col){var c=document.createElement('canvas');c.width=im.width;c.height=im.height;var q=c.getContext('2d');q.drawImage(im,0,0);q.globalCompositeOperation='source-atop';q.fillStyle=col;q.fillRect(0,0,c.width,c.height);t=TINTC[key]={im:im,col:col,c:c}}
+  return t.c;
+}
+function imgExtras(g,e,w,h,T){
+  var x0=w*.3,y0=-h*.86,ph;
+  g.save();g.lineCap='round';g.lineJoin='round';
+  if(e==='love'){ph=(T*.9)%1;g.globalAlpha=1-ph;heart(g,x0,y0-ph*40,9,'#e63757')}
+  else if(e==='sleepy'){g.strokeStyle='#5b6cff';g.lineWidth=4;
+    for(var i=0;i<3;i++){var qq=(T*.7+i*.34)%1,z=7+i*3,x=x0+qq*26,y=y0-qq*46;g.globalAlpha=1-qq;g.beginPath();g.moveTo(x,y);g.lineTo(x+z,y);g.lineTo(x,y+z);g.lineTo(x+z,y+z);g.stroke()}}
+  else if(e==='scared'){var dy=Math.abs(Math.sin(T*4))*6;g.fillStyle='#7cc8ff';g.beginPath();g.moveTo(x0,y0+dy-10);g.quadraticCurveTo(x0+8,y0+dy+2,x0,y0+dy+7);g.quadraticCurveTo(x0-8,y0+dy+2,x0,y0+dy-10);g.fill()}
+  else if(e==='sad'){ph=(T*.8)%1;g.globalAlpha=1-ph*ph;g.fillStyle='#7cc8ff';var tx=-w*.12,ty=-h*.74+ph*h*.1;g.beginPath();g.moveTo(tx,ty-9);g.quadraticCurveTo(tx+7,ty+2,tx,ty+6);g.quadraticCurveTo(tx-7,ty+2,tx,ty-9);g.fill()}
+  else if(e==='surprised'){g.strokeStyle=g.fillStyle='#e63757';g.lineWidth=7;g.beginPath();g.moveTo(x0,y0-24);g.lineTo(x0,y0-6);g.stroke();g.beginPath();g.arc(x0,y0+8,4.5,0,7);g.fill()}
+  else if(e==='angry'){g.strokeStyle='#e63757';g.lineWidth=5;[-1,1].forEach(function(sx){[-1,1].forEach(function(sy){g.beginPath();g.moveTo(x0+sx*13,y0+sy*4);g.lineTo(x0+sx*4,y0+sy*4);g.lineTo(x0+sx*4,y0+sy*13);g.stroke()})})}
+  else if(e==='happy'){var st=7+Math.abs(Math.sin(T*5))*7;g.fillStyle='#ffd23f';g.beginPath();g.moveTo(x0,y0-st);g.quadraticCurveTo(x0,y0,x0+st,y0);g.quadraticCurveTo(x0,y0,x0,y0+st);g.quadraticCurveTo(x0,y0,x0-st,y0);g.quadraticCurveTo(x0,y0,x0,y0-st);g.fill()}
+  g.restore();
+}
+/* cartoon look: edge-preserving smoothing, brightness bands, saturation boost, dark outlines */
+function cartoonize(c){
+  var w=c.width,h=c.height,n=w*h,q=c.getContext('2d'),im=q.getImageData(0,0,w,h),d=im.data,i,j,x,y,k;
+  var ch=[new Float32Array(n),new Float32Array(n),new Float32Array(n)],A=new Uint8Array(n);
+  for(i=0;i<n;i++){j=i*4;ch[0][i]=d[j];ch[1][i]=d[j+1];ch[2][i]=d[j+2];A[i]=d[j+3]}
+  var LUT=[],SW=[];for(k=0;k<512;k++)LUT[k]=Math.exp(-(k*400+200)/4500);
+  for(y=-2;y<=2;y++)for(x=-2;x<=2;x++)SW.push(Math.exp(-(x*x+y*y)/4.5));
+  for(var pass=0;pass<CT_PASSES;pass++){
+    var o=[new Float32Array(n),new Float32Array(n),new Float32Array(n)],r0=ch[0],g0=ch[1],b0=ch[2];
+    for(y=0;y<h;y++)for(x=0;x<w;x++){
+      i=y*w+x;var sr=0,sg=0,sb=0,sw=0,m=0;
+      for(var dy=-2;dy<=2;dy++){var yy=y+dy;if(yy<0||yy>=h){m+=5;continue}
+        for(var dx=-2;dx<=2;dx++,m++){var xx=x+dx;if(xx<0||xx>=w)continue;
+          var t=yy*w+xx,dr=r0[t]-r0[i],dg=g0[t]-g0[i],db=b0[t]-b0[i],wt=SW[m]*LUT[Math.min(511,((dr*dr+dg*dg+db*db)/400)|0)];
+          sr+=r0[t]*wt;sg+=g0[t]*wt;sb+=b0[t]*wt;sw+=wt}}
+      o[0][i]=sr/sw;o[1][i]=sg/sw;o[2][i]=sb/sw}
+    ch=o}
+  var L=new Float32Array(n),E=new Uint8Array(n),E2;
+  for(i=0;i<n;i++)L[i]=.299*ch[0][i]+.587*ch[1][i]+.114*ch[2][i];
+  for(y=1;y<h-1;y++)for(x=1;x<w-1;x++){i=y*w+x;
+    var gx=L[i-w+1]+2*L[i+1]+L[i+w+1]-L[i-w-1]-2*L[i-1]-L[i+w-1],gy=L[i+w-1]+2*L[i+w]+L[i+w+1]-L[i-w-1]-2*L[i-w]-L[i-w+1],
+      ax=A[i-w+1]+2*A[i+1]+A[i+w+1]-A[i-w-1]-2*A[i-1]-A[i+w-1],ay=A[i+w-1]+2*A[i+w]+A[i+w+1]-A[i-w-1]-2*A[i-w]-A[i-w+1];
+    if(gx*gx+gy*gy>CT_EDGE*CT_EDGE||ax*ax+ay*ay>250000)E[i]=1}
+  E2=new Uint8Array(E);
+  for(y=1;y<h-1;y++)for(x=1;x<w-1;x++){i=y*w+x;if(E[i-1]||E[i+1]||E[i-w]||E[i+w])E2[i]=1}
+  for(i=0;i<n;i++){j=i*4;
+    if(E2[i]){d[j]=26;d[j+1]=20;d[j+2]=34;continue}
+    var l=L[i],lq=Math.round(l/255*(CT_BANDS-1))/(CT_BANDS-1)*255,kk=1+((lq+10)/(l+10)-1)*CT_MIX;
+    d[j]=clamp((l+(ch[0][i]-l)*1.3)*kk,0,255);d[j+1]=clamp((l+(ch[1][i]-l)*1.3)*kk,0,255);d[j+2]=clamp((l+(ch[2][i]-l)*1.3)*kk,0,255)}
+  q.putImageData(im,0,0);return c;
+}
+var CT_EDGE=220,CT_BANDS=8,CT_PASSES=3,CT_MIX=.55;
+function wantCartoon(){return S.cartoon!==false}
+function urlToCanvas(u,cb){var im=new Image();im.onerror=function(){cb(null)};im.onload=function(){var c=document.createElement('canvas');c.width=im.width;c.height=im.height;c.getContext('2d').drawImage(im,0,0);cb(c)};im.src=u}
+function cartoonActor(id){
+  var a=P.actors.filter(function(x){return x.id===id})[0];if(!a||(a.kind!=='img'&&a.kind!=='face'))return;
+  var items=[['img',a.img]];Object.keys(a.poses||{}).forEach(function(k){items.push([k,a.poses[k]])});
+  var left=items.length;toast('جارٍ التحويل...');
+  items.forEach(function(it){urlToCanvas(it[1],function(c){
+    if(c){var out=canvasUrl(cartoonize(c),false,false);if(it[0]==='img')a.img=out;else if(a.poses)a.poses[it[0]]=out}
+    if(--left===0){refresh();renderPanel();toast('تم التحويل لشكل كرتوني')}})});
 }
 function drawFaceHead(g,a,p,T){
   var im=getImgKey('f'+a.id,a.img),R=60,NY=-138,HY=-54,e=p.emo,tilt=0,dy=0,sx=1,sy=1,dx=0;
@@ -47,7 +111,7 @@ function drawFaceHead(g,a,p,T){
   if(im){var z=clamp(a.zoom||1,1,3),s=Math.min(im.width,im.height)/z,cx=im.width/2-(a.fx||0)*(im.width-s)/2,cy=im.height/2-(a.fy||0)*(im.height-s)/2;
     g.drawImage(im,cx-s/2,cy-s/2,s,s,-R,HY-R,2*R,2*R)}
   else{g.fillStyle='#c9cfdd';g.fillRect(-R,HY-R,2*R,2*R)}
-  var tint=e==='angry'?'rgba(255,50,30,.28)':e==='sad'?'rgba(80,110,255,.16)':e==='scared'?'rgba(210,235,255,.22)':e==='sleepy'?'rgba(40,50,130,.14)':null;
+  var tint=EMOTINT[e]||null;
   if(tint){g.fillStyle=tint;g.fillRect(-R,HY-R,2*R,2*R)}
   g.restore();
   g.lineWidth=4;g.strokeStyle=shade(a.color,-.35);g.beginPath();g.arc(0,HY,R,0,7);g.stroke();
@@ -59,36 +123,36 @@ function faceHTML(a){
   return '<div class="hint">وجه من صورة على جسم كرتوني. حرّك المؤشرات حتى يظهر الوجه كاملًا داخل الدائرة.</div>'
     +'<select data-m="actor" data-id="'+a.id+'" data-k="body" aria-label="الجسم">'+opts({boy:'جسم ولد',girl:'جسم فتاة'},a.body==='girl'?'girl':'boy')+'</select>'
     +rg('zoom','التقريب',1,3)+rg('fx','يمين ويسار',-1,1)+rg('fy','أعلى وأسفل',-1,1)
-    +'<div class="row"><button class="btn sm" data-a="face-swap" data-id="'+a.id+'">تغيير الصورة</button></div>';
+    +'<div class="row"><button class="btn sm" data-a="face-swap" data-id="'+a.id+'">تغيير الصورة</button><button class="btn sm" data-a="cartoon-actor" data-id="'+a.id+'">حوّل الصورة لكرتون</button></div>';
 }
 function addFaceActor(){
   if(P.actors.length>=6){toast('الحد الأقصى 6 شخصيات، احذف شخصية أولًا');return}
   pickImage(function(c,fl){
     if(P.actors.length>=6)return;
     var id=uid(),nm=(fl.name||'').replace(/\.[^.]+$/,'').slice(0,20)||'وجهي';
-    P.actors.push({id:id,name:nm,kind:'face',body:'boy',color:'#3a86ff',accent:'#f1c27d',img:canvasUrl(c,false),zoom:1.3,fx:0,fy:c.height>c.width?.6:0});
+    P.actors.push({id:id,name:nm,kind:'face',body:'boy',color:'#3a86ff',accent:'#f1c27d',img:canvasUrl(c,false,wantCartoon()),zoom:1.3,fx:0,fy:c.height>c.width?.6:0});
     addToScene(id);refresh();renderPanel();toast('أضفت «'+nm+'» بوجهك إلى المشروع والمشهد')},480);
 }
 function swapFace(id){
   pickImage(function(c){var a=P.actors.filter(function(x){return x.id===id})[0];if(!a||a.kind!=='face')return;
-    a.img=canvasUrl(c,false);a.zoom=1.3;a.fx=0;a.fy=c.height>c.width?.6:0;refresh();renderPanel();toast('تم تغيير الصورة')},480);
+    a.img=canvasUrl(c,false,wantCartoon());a.zoom=1.3;a.fx=0;a.fy=c.height>c.width?.6:0;refresh();renderPanel();toast('تم تغيير الصورة')},480);
 }
 function poseHTML(a){
   var h='<div class="hint">شخصية من صورة. أضف صورًا لأوضاع أخرى لتتبدل تلقائيًا (اختياري).</div><div class="pgrid">';
   Object.keys(POSEN).forEach(function(k){var u=(a.poses||{})[k];
     h+='<div class="pz"><button class="btn sm" data-a="pose-add" data-id="'+a.id+'" data-pose="'+k+'" aria-label="'+(u?'استبدال':'إضافة')+' صورة '+POSEN[k]+'">'+(u?'<img src="'+u+'" alt="">':'<span class="plus">+</span>')+'<span>'+POSEN[k]+'</span></button>'
       +(u?'<button class="x" data-a="pose-del" data-id="'+a.id+'" data-pose="'+k+'" aria-label="حذف صورة '+POSEN[k]+'">×</button>':'')+'</div>'});
-  return h+'</div>';
+  return h+'</div><div class="row"><button class="btn sm" data-a="cartoon-actor" data-id="'+a.id+'">حوّل الصورة لكرتون</button></div>';
 }
-function canvasUrl(c,rm){
-  if(rm)removeBg(c);var u=encAlpha(c);
+function canvasUrl(c,rm,ct){
+  if(rm)removeBg(c);if(ct)cartoonize(c);var u=encAlpha(c);
   if(u.length>700000){var c2=document.createElement('canvas');c2.width=Math.round(c.width*.6);c2.height=Math.round(c.height*.6);c2.getContext('2d').drawImage(c,0,0,c2.width,c2.height);u=encAlpha(c2)}
   return u;
 }
 function addPose(id,k){
   if(!POSEN[k])return;var rm=$('#rmbg')?$('#rmbg').checked:true;
   pickImage(function(c){var a=P.actors.filter(function(x){return x.id===id})[0];if(!a||a.kind!=='img')return;
-    a.poses=a.poses||{};a.poses[k]=canvasUrl(c,rm);refresh();renderPanel();toast('أضفت صورة «'+POSEN[k]+'»')},380);
+    a.poses=a.poses||{};a.poses[k]=canvasUrl(c,rm,wantCartoon());refresh();renderPanel();toast('أضفت صورة «'+POSEN[k]+'»')},380);
 }
 function drawPhotoBG(g,sc){
   var im=getImgKey('b'+sc.id,sc.bgImg);if(!im){g.fillStyle=sc.bgCol||'#333';g.fillRect(0,0,W,H);return}
@@ -124,7 +188,7 @@ function addPhotoActor(){
   if(P.actors.length>=6){toast('الحد الأقصى 6 شخصيات، احذف شخصية أولًا');return}
   var rm=$('#rmbg')?$('#rmbg').checked:true;
   pickImage(function(c,fl){
-    if(P.actors.length>=6)return;if(rm)removeBg(c);var u=encAlpha(c);
+    if(P.actors.length>=6)return;if(rm)removeBg(c);if(wantCartoon())cartoonize(c);var u=encAlpha(c);
     if(u.length>700000){var c2=document.createElement('canvas');c2.width=Math.round(c.width*.6);c2.height=Math.round(c.height*.6);c2.getContext('2d').drawImage(c,0,0,c2.width,c2.height);u=encAlpha(c2)}
     var id=uid(),nm=(fl.name||'').replace(/\.[^.]+$/,'').slice(0,20)||'صورة';
     P.actors.push({id:id,name:nm,kind:'img',color:'#8d99ae',accent:'#e8eaf0',img:u});addToScene(id);refresh();renderPanel();toast('أضفت «'+nm+'» إلى المشروع والمشهد')},380);
@@ -137,9 +201,9 @@ function setPhotoBG(){
 function galleryHTML(){
   var h='<h3>معرض الشخصيات</h3><p class="hint">اضغط شخصية لإضافتها إلى المشروع وإلى المشهد الحالي.</p><div class="row">';
   GAL.forEach(function(p0,i){h+='<button class="gal" data-a="gal-add" data-i="'+i+'"><canvas width="100" height="130" data-gal="'+i+'" aria-hidden="true"></canvas><span>'+esc(p0.n)+'</span></button>'});
-  return h+'</div><h3>شخصية بوجهك</h3><div class="row"><button class="btn pri" data-a="face-add">+ شخصية بوجه من صورة</button></div><p class="hint">اختر صورة واضحة لوجهك. يوضع الوجه على جسم كرتوني (ولد أو فتاة) فيمشي ويجري ويقفز ويلوّح ويصفّق ويرقص ويجلس ويتكلم مثل باقي الشخصيات، ويتغير تعبيره حسب الحوار. اضبط الإطار من بطاقة الشخصية.</p><h3>من معرض الصور</h3><label class="row" style="gap:6px"><input type="checkbox" id="rmbg" checked style="width:auto"> أزل الخلفية الموحدة تلقائيًا</label>'
+  return h+'</div><h3>تحويل الصور</h3><label class="row" style="gap:6px"><input type="checkbox" data-m="ui" data-k="cartoon" style="width:auto"'+(S.cartoon===false?'':' checked')+'> حوّل الصور التي أرفعها لشكل كرتوني</label><h3>شخصية بوجهك</h3><div class="row"><button class="btn pri" data-a="face-add">+ شخصية بوجه من صورة</button></div><p class="hint">اختر صورة واضحة لوجهك. يوضع الوجه على جسم كرتوني (ولد أو فتاة) فيمشي ويجري ويقفز ويلوّح ويصفّق ويرقص ويجلس ويتكلم مثل باقي الشخصيات، ويتغير تعبيره حسب الحوار. اضبط الإطار من بطاقة الشخصية.</p><h3>من معرض الصور</h3><label class="row" style="gap:6px"><input type="checkbox" id="rmbg" checked style="width:auto"> أزل الخلفية الموحدة تلقائيًا</label>'
    +'<div class="row"><button class="btn" data-a="img-add">+ شخصية من صورة</button></div>'
-   +'<p class="hint">تصبح الصورة شخصية تمشي وتقفز وتتكلم بحركة خفيفة. بعد إضافتها ستجد في بطاقتها خانات لصور أوضاعها (سعيد، حزين، يتكلم...) لتتبدل تلقائيًا. الأفضل صورة لشخص أو رسم كامل على خلفية موحدة. لا يوجد تزامن للشفاه مع الصور.</p>';
+   +'<p class="hint">تصبح الصورة شخصية تمشي وتقفز وتتكلم بحركة خفيفة، وتظهر عليها علامات الانفعال (قلوب، نوم، عرق، دموع، غضب) حسب الحوار. بعد إضافتها ستجد في بطاقتها خانات لصور أوضاعها (سعيد، حزين، يتكلم...) لتتبدل تلقائيًا. الأفضل صورة لشخص أو رسم كامل على خلفية موحدة. لا يوجد تزامن للشفاه مع الصور.</p>';
 }
 var MPOSES=[['عادي',{emo:'neutral'}],['سعيد',{emo:'happy'}],['حزين',{emo:'sad'}],['متفاجئ',{emo:'surprised'}],
   ['غاضب',{emo:'angry'}],['نعسان',{emo:'sleepy',T:.4}],['خائف',{emo:'scared',T:.4}],['محب',{emo:'love',T:.4}],

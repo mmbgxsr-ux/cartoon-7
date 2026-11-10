@@ -203,3 +203,44 @@ test("photo-head actors draw in every emotion and action without throwing", () =
   const photoDraws = calls.filter(([k, a]) => k === "drawImage" && a.length === 9);
   assert.equal(photoDraws.length, cases.length * 2);
 });
+
+test("cartoonize outlines edges and never touches alpha", () => {
+  const w = 24, h = 24, data = new Uint8ClampedArray(w * h * 4);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const j = (y * w + x) * 4, v = x < 12 ? 240 : 15;
+    data[j] = data[j + 1] = data[j + 2] = v;
+    data[j + 3] = y < 2 ? 0 : 255;
+  }
+  let put = null;
+  const canvas = { width: w, height: h, getContext: () => ({ getImageData: () => ({ data }), putImageData: (im) => { put = im; } }) };
+  assert.equal(app.cartoonize(canvas), canvas);
+  assert.ok(put, "putImageData was called");
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) assert.equal(data[(y * w + x) * 4 + 3], y < 2 ? 0 : 255);
+  let outlined = 0;
+  for (let y = 4; y < h - 1; y++) for (let x = 9; x <= 14; x++) {
+    const j = (y * w + x) * 4;
+    if (data[j] === 26 && data[j + 1] === 20 && data[j + 2] === 34) outlined++;
+  }
+  assert.ok(outlined > 0, "outline pixels appear along the colour edge");
+  const far = (10 * w + 2) * 4;
+  assert.ok(!(data[far] === 26 && data[far + 1] === 20 && data[far + 2] === 34), "flat areas are not outlined");
+
+  const tiny = { width: 2, height: 2, getContext: () => ({ getImageData: () => ({ data: new Uint8ClampedArray(16) }), putImageData() {} }) };
+  assert.doesNotThrow(() => app.cartoonize(tiny));
+});
+
+test("photo sprites draw every emotion with its overlay", () => {
+  const calls = [];
+  const g = new Proxy({}, {
+    get: (t, k) => (k in t ? t[k] : (...args) => { calls.push([k, args]); }),
+    set: (t, k, v) => { t[k] = v; return true; },
+  });
+  const actor = { id: "y1", name: "I", kind: "img", color: "#8d99ae", accent: "#e8eaf0", img: PNG };
+  const pose = (extra) => Object.assign({ px: 100, py: 200, sc: 1, face: 1, lift: 0, rot: 0, sx: 1, sy: 1, phase: 1, walk: false, emo: "neutral", talk: false, seed: 1, vis: null }, extra);
+  app.drawActor(g, actor, pose({}), 0);
+  app.IMGC.ay1.ok = true;
+  calls.length = 0;
+  const emos = Object.keys(app.EMO);
+  for (const emo of emos) assert.doesNotThrow(() => app.drawActor(g, actor, pose({ emo }), 0.4), emo);
+  assert.equal(calls.filter(([k, a]) => k === "drawImage" && a.length === 5).length, emos.length);
+});

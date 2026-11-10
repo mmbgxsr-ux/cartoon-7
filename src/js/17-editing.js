@@ -25,6 +25,7 @@ document.addEventListener('click',function(e){
   else if(a==='img-add')addPhotoActor();
   else if(a==='face-add')addFaceActor();
   else if(a==='face-swap')swapFace(el.dataset.id);
+  else if(a==='cartoon-actor')cartoonActor(el.dataset.id);
   else if(a==='bg-photo')setPhotoBG();
   else if(a==='bg-clear'){s.bg='day';delete s.bgImg;delete s.bgCol;refresh();renderPanel()}
   else if(a==='save-frame')saveFrame();
@@ -65,6 +66,7 @@ $('#panel').addEventListener('input',function(e){
   if(m==='proj')P[k]=v;
   else if(m==='scn'){var sc=P.scenes.filter(function(x){return x.id===el.dataset.id})[0];if(sc)sc[k]=v}
   else if(m==='cast'){var c=s.cast.filter(function(x){return x.actor===el.dataset.id})[0];if(c)c[k]=v}
+  else if(m==='ui')S[k]=v;
   else if(m==='actor'){var ac=actorOf(el.dataset.id);ac[k]=v;if(k==='kind'||k==='color'||k==='accent'||k==='body'||k==='zoom'||k==='fx'||k==='fy')drawThumbs()}
   else if(m==='step'){var st=s.steps.filter(function(x){return x.id===el.dataset.id})[0];if(st)st[k]=v}
   recalc();drawNow();updateUI();renderStrip();save();
