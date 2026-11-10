@@ -8,7 +8,7 @@ function own(m,k){return typeof k==='string'&&Object.prototype.hasOwnProperty.ca
 function cleanId(v){var s=String(v==null?'':v).replace(/[^A-Za-z0-9_-]/g,'').slice(0,12);return s&&!(s in Object.prototype)?s:uid()}
 function ease(t){return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2}
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
-var KINDS={cat:'قط',boy:'ولد',girl:'فتاة',rabbit:'أرنب',robot:'روبوت'};
+var KINDS={cat:'قط',boy:'ولد',girl:'فتاة',rabbit:'أرنب',dog:'كلب',bear:'دب',fox:'ثعلب',robot:'روبوت'};
 var BGS={day:'نهار',sunset:'غروب',night:'ليل',desert:'صحراء وأهرامات',room:'غرفة',forest:'غابة',sea:'شاطئ وبحر',space:'فضاء'};
 var TRN={fade:'تلاشٍ للأسود',cross:'تداخل',wipe:'مسح',slide:'دفع',cut:'قطع مباشر'};
 var GRADEN={none:'بدون',warm:'دافئ',cool:'بارد',cinema:'سينمائي',vintage:'قديم',noir:'أبيض وأسود',bright:'مشرق'};

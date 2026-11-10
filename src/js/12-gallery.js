@@ -1,7 +1,8 @@
 'use strict';
 /* ---------- gallery & photos ---------- */
 var GAL=[{n:'ميمو',k:'cat',c:'#f4a259',a:'#ffe6c7'},{n:'كريم',k:'boy',c:'#3a86ff',a:'#f1c27d'},{n:'ليلى',k:'girl',c:'#e76f51',a:'#f1c27d'},{n:'لولو',k:'rabbit',c:'#efe9f7',a:'#ffd6e0'},
-  {n:'بولت',k:'robot',c:'#6c8ead',a:'#ffd166'},{n:'سمسم',k:'cat',c:'#8d99ae',a:'#e8eaf0'},{n:'نور',k:'girl',c:'#8338ec',a:'#e0b184'},{n:'جزرة',k:'rabbit',c:'#f4a259',a:'#fff1d6'}];
+  {n:'بولت',k:'robot',c:'#6c8ead',a:'#ffd166'},{n:'سمسم',k:'cat',c:'#8d99ae',a:'#e8eaf0'},{n:'نور',k:'girl',c:'#8338ec',a:'#e0b184'},{n:'جزرة',k:'rabbit',c:'#f4a259',a:'#fff1d6'},
+  {n:'ريكس',k:'dog',c:'#c68642',a:'#f6e3c4'},{n:'دبدوب',k:'bear',c:'#8a5a3c',a:'#e9cfa8'},{n:'روبي',k:'fox',c:'#e8702a',a:'#fff3e0'}];
 var IMGC={};
 function getImgKey(key,src){var c=IMGC[key];if(!c||c.src!==src){var im=new Image();c=IMGC[key]={src:src,im:im,ok:false};im.onload=function(){c.ok=true;drawNow();drawThumbs()};im.src=src}return c.ok?c.im:null}
 var POSEN={happy:'سعيد',sad:'حزين',surprised:'متفاجئ',angry:'غاضب',sleepy:'نعسان',scared:'خائف',love:'محب',talk:'يتكلم',walk:'يمشي'};
