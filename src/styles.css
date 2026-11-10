@@ -1,7 +1,8 @@
 /* Layout: stage + transport on one side, tabbed planning panel on the other; stacks on phones. */
+@font-face{font-family:'Lahb';src:url(fonts/Lahb_arphotoshop-Bold.ttf) format('truetype');font-weight:400 700;font-style:normal;font-display:swap}
 :root{--bg:#eceff5;--surface:#ffffff;--surface2:#f3f5fa;--ink:#161b2b;--muted:#59627e;--line:#d8ddea;
 --accent:#ff5a1f;--on-accent:#ffffff;--teal:#0b8f8c;--stagebg:#0e1220;
---f-display:'Lalezar','Cairo',sans-serif;--f-body:'Cairo','Segoe UI',Tahoma,sans-serif}
+--f-display:'Lahb','Cairo',sans-serif;--f-body:'Cairo','Segoe UI',Tahoma,sans-serif}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f121b;--surface:#181d2b;--surface2:#202638;--ink:#eef1f8;--muted:#98a1bb;--line:#2b3350;--accent:#ff7a45;--on-accent:#1a0d05;--teal:#2dd4cf;color-scheme:dark}}
 :root[data-theme="dark"]{--bg:#0f121b;--surface:#181d2b;--surface2:#202638;--ink:#eef1f8;--muted:#98a1bb;--line:#2b3350;--accent:#ff7a45;--on-accent:#1a0d05;--teal:#2dd4cf;color-scheme:dark}
 *{box-sizing:border-box}

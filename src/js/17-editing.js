@@ -86,4 +86,4 @@ document.addEventListener('keydown',function(e){
 });
 try{Promise.resolve(window.claude&&window.claude.use?window.claude.use('downloads'):null).then(function(d){DL=d||null;if(S.tab==='out')renderPanel()}).catch(function(){})}catch(e){}
 recalc();renderStrip();renderPanel();updateUI();drawNow();
-if(document.fonts&&document.fonts.load){Promise.all([document.fonts.load('700 32px Cairo'),document.fonts.load('400 20px Lalezar')]).then(function(){drawNow();drawThumbs()}).catch(function(){})}
+if(document.fonts&&document.fonts.load){Promise.all([document.fonts.load('700 32px Cairo'),document.fonts.load('400 20px Lahb')]).then(function(){drawNow();drawThumbs()}).catch(function(){})}
