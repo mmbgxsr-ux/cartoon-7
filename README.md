@@ -34,7 +34,7 @@ npm run build   # ينتج dist/index.html (ملف واحد مستقل)
 3. لإصدار نسخة: `git tag v14.0.1 && git push --tags`.
 
 ## ملاحظات
-- التصدير عالي الجودة يستخدم مكتبة `mp4-muxer`. إن وُجد الملف `src/vendor/mp4-muxer.mjs` (بعد `npm run vendor`) يُدمج في النسخة المبنية ويعمل التصدير دون إنترنت؛ وإلا تُحمَّل المكتبة من jsdelivr عند أول تصدير.
+- التصدير عالي الجودة يستخدم مكتبة `mp4-muxer` v5.1.3 (رخصة MIT، انظر `src/vendor/LICENSE-mp4-muxer`)، وهي مضمَّنة في `src/vendor/` وتُدمج في النسخة المبنية، فيعمل التصدير دون إنترنت. للتحديث: غيّر الإصدار في `scripts/vendor.mjs` ثم `npm run vendor`.
 - يحتاج Chrome/Edge حديثًا لميزات WebCodecs.
 - خط العناوين `src/fonts/Lahb_arphotoshop-Bold.ttf` يحمل علامة ترخيص «مقيَّد» (fsType) من مصمّمه؛ تأكد من حقك في نشره مع الأداة قبل إتاحتها للجمهور.
 - الرخصة: MIT.
