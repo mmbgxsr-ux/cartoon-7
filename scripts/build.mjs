@@ -1,12 +1,14 @@
 // Builds dist/: a single self-contained HTML file (works offline from disk, easy to share).
-import { mkdirSync, writeFileSync, copyFileSync, existsSync } from "node:fs";
+import { mkdirSync, writeFileSync, copyFileSync, existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { ROOT, read, scriptFiles } from "./lib.mjs";
 
 const { html, list } = scriptFiles();
 const js = list.map((f) => read(f)).join("\n");
 if (/<\/script/i.test(js)) throw new Error("JS contains </script>; escape it before building");
-const css = read("src/styles.css");
+// Inline local fonts (url(fonts/x.ttf)) as data URIs so the output stays one self-contained file.
+const css = read("src/styles.css").replace(/url\(fonts\/([\w.-]+)\)/g, (_, f) =>
+  `url(data:font/ttf;base64,${readFileSync(join(ROOT, "src/fonts", f)).toString("base64")})`);
 let out = html
   .replace('<link rel="stylesheet" href="src/styles.css">', () => "<style>\n" + css + "</style>")
   .replace(/<script src="src\/js\/[^"]+"><\/script>\n?/g, "");
