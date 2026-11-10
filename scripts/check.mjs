@@ -16,4 +16,8 @@ catch (e) { console.error(String(e.stderr || e)); process.exit(1); }
 for (const id of ["cv", "scrub", "time"]) {
   if (!read("index.html").includes(`id="${id}"`)) { console.error("Missing element #" + id); process.exit(1); }
 }
+const html = read("index.html");
+for (const [what, re] of [["meta description", /<meta name="description" content="[^"]{40,}"/], ["theme-color", /<meta name="theme-color"/], ["favicon", /<link rel="icon"/], ["lang/dir", /<html lang="ar" dir="rtl">/]]) {
+  if (!re.test(html)) { console.error("index.html is missing: " + what); process.exit(1); }
+}
 console.log(`OK: ${list.length} scripts parse as one bundle`);

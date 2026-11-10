@@ -48,7 +48,7 @@ document.addEventListener('click',function(e){
     P.actors.push({id:uid(),name:'شخصية '+(P.actors.length+1),kind:k,color:pal[0],accent:pal[1]});refresh();renderPanel()}
   else if(a==='del-actor'){if(P.actors.length<2){toast('يجب أن تبقى شخصية واحدة');return}var id=el.dataset.id;P.actors=P.actors.filter(function(x){return x.id!==id});
     P.scenes.forEach(function(sc){sc.cast=sc.cast.filter(function(c){return c.actor!==id});sc.steps=sc.steps.filter(function(x){return x.actor!==id})});refresh();renderPanel()}
-  else if(a==='add-cast'){var v=$('#castAdd');if(!v)return;var n=newCast();n.actor=v.value;s.cast.push(n);refresh();renderPanel()}
+  else if(a==='add-cast'){var ca=$('#castAdd');if(!ca)return;var n=newCast();n.actor=ca.value;s.cast.push(n);refresh();renderPanel()}
   else if(a==='del-cast'){var id2=el.dataset.id;s.cast=s.cast.filter(function(c){return c.actor!==id2});s.steps=s.steps.filter(function(x){return x.actor!==id2});refresh();renderPanel()}
   else if(a==='add-step'){if(!s.cast.length){toast('أضف شخصية إلى المشهد أولًا');return}var end=0;s.steps.forEach(function(x){end=Math.max(end,x.t+x.d)});
     var t0=+Math.min(end,Math.max(0,s.dur-1)).toFixed(1),ac=s.cast[0].actor;

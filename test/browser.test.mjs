@@ -105,3 +105,50 @@ test("built file embeds mp4-muxer and it loads offline from the page itself", { 
   assert.deepEqual(r.api, ["function", "function"]);
   assert.equal(r.ftyp, "ftyp", "muxer should emit an MP4 container");
 });
+
+test("page identity: description, theme colour, favicon, language", { skip }, async () => {
+  const h = await page.evaluate(() => ({
+    lang: document.documentElement.lang, dir: document.documentElement.dir,
+    desc: document.querySelector('meta[name=description]')?.content || "",
+    theme: document.querySelectorAll("meta[name=theme-color]").length,
+    icon: document.querySelector('link[rel=icon]')?.href || "",
+    og: document.querySelector('meta[property="og:title"]')?.content || "",
+  }));
+  assert.equal(h.lang, "ar"); assert.equal(h.dir, "rtl");
+  assert.ok(h.desc.length > 40, "description too short");
+  assert.equal(h.theme, 2);
+  assert.match(h.icon, /^data:image\/svg\+xml,/);
+  assert.ok(h.og);
+});
+
+test("crash banner: shows details, de-duplicates, offers a backup download, ignores AbortError", { skip }, async () => {
+  const throwLater = (msg) => page.evaluate((m) => { setTimeout(() => { throw new Error(m); }, 0); }, msg);
+  assert.equal(await page.locator("#errbar").count(), 0, "no banner before any error");
+  // Headless Chromium reports any non-Latin download name as "download", so use a Latin title to check the name.
+  await page.locator('#tabs button[data-v="plan"]').click();
+  await page.locator('input[data-k="title"]').first().fill("Boom Test");
+
+  await throwLater("boom-test");
+  await page.locator("#errbar").waitFor();
+  assert.equal(await page.locator("#errbar").getAttribute("role"), "alert");
+  assert.match(await page.locator("#errdetails").textContent(), /boom-test/);
+  assert.equal(await page.locator("#errbar button").count(), 3);
+
+  await throwLater("boom-test");
+  await page.waitForFunction(() => /×2/.test(document.getElementById("errdetails").textContent));
+
+  await page.evaluate(() => { Promise.reject(new Error("rej-test")); });
+  await page.waitForFunction(() => /rej-test/.test(document.getElementById("errdetails").textContent));
+
+  const [dl] = await Promise.all([page.waitForEvent("download"), page.locator("#errbar button", { hasText: "حفظ نسخة" }).click()]);
+  assert.equal(dl.suggestedFilename(), "Boom Test.cartoon.json");
+
+  await page.locator("#errbar button", { hasText: "إغلاق" }).click();
+  assert.equal(await page.locator("#errbar").count(), 0);
+
+  await page.evaluate(() => { Promise.reject(new DOMException("cancelled", "AbortError")); });
+  await page.waitForTimeout(200);
+  assert.equal(await page.locator("#errbar").count(), 0, "AbortError must not raise the banner");
+
+  pageErrors.length = 0; // these errors were thrown on purpose
+});

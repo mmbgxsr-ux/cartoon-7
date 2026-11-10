@@ -27,6 +27,7 @@ export function loadApp() {
       setItem: (k, v) => { store[k] = String(v); },
       removeItem: (k) => { delete store[k]; },
     },
+    addEventListener() {},
     document: stub(), navigator: { userAgent: "node" },
   };
   sandbox.window = sandbox;
