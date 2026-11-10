@@ -60,7 +60,7 @@ function face(g,k,p,T){
   faceExtras(g,k,p,T,ex,ey);
 }
 function drawActor(g,a,p,T){
-  var sc=p.sc,k=a.kind,bk=baseKind(k),c=a.color,ac=a.accent,sw=Math.sin(p.phase),air=p.lift>6,rf=p.run?1.5:1;
+  var sc=p.sc,photo=a.kind==='face',k=photo?(a.body==='girl'?'girl':'boy'):a.kind,bk=baseKind(k),c=a.color,ac=a.accent,sw=Math.sin(p.phase),air=p.lift>6,rf=p.run?1.5:1;
   p.accent=ac;
   g.save();g.translate(p.px,p.py);
   g.fillStyle='rgba(0,0,0,'+(.22*clamp(1-p.lift/260,.3,1))+')';g.beginPath();g.ellipse(0,0,60*sc,12*sc,0,0,7);g.fill();
@@ -85,11 +85,12 @@ function drawActor(g,a,p,T){
     g.fillStyle='#e58a9c';g.beginPath();g.moveTo(-6,-177);g.lineTo(6,-177);g.lineTo(0,-170);g.closePath();g.fill();
     g.strokeStyle=shade(c,-.35);g.lineWidth=3;[-1,1].forEach(function(s){for(var i=0;i<3;i++){g.beginPath();g.moveTo(s*24,-170+i*5);g.lineTo(s*62,-178+i*10);g.stroke()}});
     if(k==='cat'){g.lineWidth=5;g.beginPath();g.moveTo(-9,-238);g.lineTo(-9,-226);g.moveTo(0,-240);g.lineTo(0,-228);g.moveTo(9,-238);g.lineTo(9,-226);g.stroke()}}
+  else if(bk==='boy'&&photo){drawFaceHead(g,a,p,T)}
   else if(bk==='boy'){if(k==='girl'){g.fillStyle=shade(ac,-.65);rr(g,-58,-205,116,118,44);g.fill()}g.fillStyle=ac;[-1,1].forEach(function(s){g.beginPath();g.arc(s*50,-185,10,0,7);g.fill()});g.beginPath();g.arc(0,-188,50,0,7);g.fill();
     g.fillStyle=shade(ac,-.65);g.beginPath();g.arc(0,-192,53,Math.PI*1.04,Math.PI*1.96);g.closePath();g.fill();g.beginPath();g.arc(-8,-240,14,0,7);g.arc(14,-238,12,0,7);g.fill()}
   else{g.strokeStyle='#6f7a90';g.lineWidth=5;g.beginPath();g.moveTo(0,-232);g.lineTo(0,-262);g.stroke();g.fillStyle=ac;g.beginPath();g.arc(0,-266,8,0,7);g.fill();
     g.fillStyle=shade(c,.12);rr(g,-54,-236,108,86,20);g.fill();g.fillStyle='#10152a';rr(g,-42,-224,84,62,14);g.fill()}
-  face(g,k,p,T);
+  if(!photo)face(g,k,p,T);
   g.restore();
 }
 function squash(hu){return(1+.14*Math.sin(hu*Math.PI))*(hu<.12?1-.2*(1-hu/.12):hu>.88?1-.2*((hu-.88)/.12):1)}

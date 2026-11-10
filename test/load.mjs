@@ -27,6 +27,7 @@ export function loadApp() {
       setItem: (k, v) => { store[k] = String(v); },
       removeItem: (k) => { delete store[k]; },
     },
+    Image: class Image { constructor() { this.width = 400; this.height = 600; } },
     document: stub(), navigator: { userAgent: "node" },
   };
   sandbox.window = sandbox;

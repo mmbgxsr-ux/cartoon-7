@@ -31,6 +31,48 @@ function drawImgActor(g,a,p,T){
   if(p.lift>8){sy*=1.06;sx*=.96}
   g.translate(dx,0);g.rotate(rot);g.scale(sx,sy);g.drawImage(im,-w/2,-h,w,h);
 }
+function drawFaceHead(g,a,p,T){
+  var im=getImgKey('f'+a.id,a.img),R=60,NY=-138,HY=-54,e=p.emo,tilt=0,dy=0,sx=1,sy=1,dx=0;
+  if(p.walk)tilt+=Math.sin(p.phase)*.05;
+  if(p.talk){var o=p.vis?p.vis[0]/14:Math.abs(Math.sin(T*10+p.seed));tilt+=Math.sin(T*7+p.seed)*.04;sy*=1+o*.05;sx*=1-o*.02}
+  if(e==='happy')dy-=Math.abs(Math.sin(T*5))*5;
+  else if(e==='sad'){tilt+=.12;dy+=8}
+  else if(e==='surprised'){sx*=1.1;sy*=1.1}
+  else if(e==='angry')dx=Math.sin(T*35)*2;
+  else if(e==='sleepy'){tilt+=.2;dy+=6}
+  else if(e==='love')dy-=Math.abs(Math.sin(T*6))*3;
+  g.save();g.translate(dx,NY+dy);g.rotate(tilt);g.scale(sx,sy);
+  g.fillStyle='#fff';g.beginPath();g.arc(0,HY,R+4,0,7);g.fill();
+  g.save();g.beginPath();g.arc(0,HY,R,0,7);g.clip();
+  if(im){var z=clamp(a.zoom||1,1,3),s=Math.min(im.width,im.height)/z,cx=im.width/2-(a.fx||0)*(im.width-s)/2,cy=im.height/2-(a.fy||0)*(im.height-s)/2;
+    g.drawImage(im,cx-s/2,cy-s/2,s,s,-R,HY-R,2*R,2*R)}
+  else{g.fillStyle='#c9cfdd';g.fillRect(-R,HY-R,2*R,2*R)}
+  var tint=e==='angry'?'rgba(255,50,30,.28)':e==='sad'?'rgba(80,110,255,.16)':e==='scared'?'rgba(210,235,255,.22)':e==='sleepy'?'rgba(40,50,130,.14)':null;
+  if(tint){g.fillStyle=tint;g.fillRect(-R,HY-R,2*R,2*R)}
+  g.restore();
+  g.lineWidth=4;g.strokeStyle=shade(a.color,-.35);g.beginPath();g.arc(0,HY,R,0,7);g.stroke();
+  g.restore();
+  faceExtras(g,'boy',p,T,19,-192);
+}
+function faceHTML(a){
+  function rg(k,lbl,min,max){return '<div class="row"><label class="l">'+lbl+'</label><input type="range" dir="ltr" data-m="actor" data-id="'+a.id+'" data-k="'+k+'" min="'+min+'" max="'+max+'" step="0.05" value="'+(a[k]!=null?a[k]:(k==='zoom'?1:0))+'"></div>'}
+  return '<div class="hint">وجه من صورة على جسم كرتوني. حرّك المؤشرات حتى يظهر الوجه كاملًا داخل الدائرة.</div>'
+    +'<select data-m="actor" data-id="'+a.id+'" data-k="body" aria-label="الجسم">'+opts({boy:'جسم ولد',girl:'جسم فتاة'},a.body==='girl'?'girl':'boy')+'</select>'
+    +rg('zoom','التقريب',1,3)+rg('fx','يمين ويسار',-1,1)+rg('fy','أعلى وأسفل',-1,1)
+    +'<div class="row"><button class="btn sm" data-a="face-swap" data-id="'+a.id+'">تغيير الصورة</button></div>';
+}
+function addFaceActor(){
+  if(P.actors.length>=6){toast('الحد الأقصى 6 شخصيات، احذف شخصية أولًا');return}
+  pickImage(function(c,fl){
+    if(P.actors.length>=6)return;
+    var id=uid(),nm=(fl.name||'').replace(/\.[^.]+$/,'').slice(0,20)||'وجهي';
+    P.actors.push({id:id,name:nm,kind:'face',body:'boy',color:'#3a86ff',accent:'#f1c27d',img:canvasUrl(c,false),zoom:1.3,fx:0,fy:c.height>c.width?.6:0});
+    addToScene(id);refresh();renderPanel();toast('أضفت «'+nm+'» بوجهك إلى المشروع والمشهد')},480);
+}
+function swapFace(id){
+  pickImage(function(c){var a=P.actors.filter(function(x){return x.id===id})[0];if(!a||a.kind!=='face')return;
+    a.img=canvasUrl(c,false);a.zoom=1.3;a.fx=0;a.fy=c.height>c.width?.6:0;refresh();renderPanel();toast('تم تغيير الصورة')},480);
+}
 function poseHTML(a){
   var h='<div class="hint">شخصية من صورة. أضف صورًا لأوضاع أخرى لتتبدل تلقائيًا (اختياري).</div><div class="pgrid">';
   Object.keys(POSEN).forEach(function(k){var u=(a.poses||{})[k];
@@ -95,7 +137,7 @@ function setPhotoBG(){
 function galleryHTML(){
   var h='<h3>معرض الشخصيات</h3><p class="hint">اضغط شخصية لإضافتها إلى المشروع وإلى المشهد الحالي.</p><div class="row">';
   GAL.forEach(function(p0,i){h+='<button class="gal" data-a="gal-add" data-i="'+i+'"><canvas width="100" height="130" data-gal="'+i+'" aria-hidden="true"></canvas><span>'+esc(p0.n)+'</span></button>'});
-  return h+'</div><h3>من معرض الصور</h3><label class="row" style="gap:6px"><input type="checkbox" id="rmbg" checked style="width:auto"> أزل الخلفية الموحدة تلقائيًا</label>'
+  return h+'</div><h3>شخصية بوجهك</h3><div class="row"><button class="btn pri" data-a="face-add">+ شخصية بوجه من صورة</button></div><p class="hint">اختر صورة واضحة لوجهك. يوضع الوجه على جسم كرتوني (ولد أو فتاة) فيمشي ويجري ويقفز ويلوّح ويصفّق ويرقص ويجلس ويتكلم مثل باقي الشخصيات، ويتغير تعبيره حسب الحوار. اضبط الإطار من بطاقة الشخصية.</p><h3>من معرض الصور</h3><label class="row" style="gap:6px"><input type="checkbox" id="rmbg" checked style="width:auto"> أزل الخلفية الموحدة تلقائيًا</label>'
    +'<div class="row"><button class="btn" data-a="img-add">+ شخصية من صورة</button></div>'
    +'<p class="hint">تصبح الصورة شخصية تمشي وتقفز وتتكلم بحركة خفيفة. بعد إضافتها ستجد في بطاقتها خانات لصور أوضاعها (سعيد، حزين، يتكلم...) لتتبدل تلقائيًا. الأفضل صورة لشخص أو رسم كامل على خلفية موحدة. لا يوجد تزامن للشفاه مع الصور.</p>';
 }
@@ -105,7 +147,7 @@ var MPOSES=[['عادي',{emo:'neutral'}],['سعيد',{emo:'happy'}],['حزين',
   ['يجلس',{emo:'happy',act:'sit'}],['يلوّح',{emo:'happy',act:'wave',T:.45}],['يرقص',{emo:'happy',act:'dance',T:.45,rot:.1,lift:14}],['يصفّق',{emo:'happy',act:'clap',T:.45}]];
 function drawModel(c,a){
   var q=c.getContext('2d');q.setTransform(1,0,0,1,0,0);q.clearRect(0,0,c.width,c.height);q.fillStyle='#fff';q.fillRect(0,0,c.width,c.height);
-  q.fillStyle='#161b2b';q.textAlign='center';q.font='700 30px '+FONT;q.fillText('ورقة النموذج · '+a.name+' ('+(KINDS[a.kind]||'صورة')+')',600,42);
+  q.fillStyle='#161b2b';q.textAlign='center';q.font='700 30px '+FONT;q.fillText('ورقة النموذج · '+a.name+' ('+(KINDS[a.kind]||(a.kind==='face'?'وجه من صورة':'صورة'))+')',600,42);
   MPOSES.forEach(function(m,i){var x0=(i%4)*300,y0=60+Math.floor(i/4)*420;
     q.fillStyle='#f3f5fa';rr(q,x0+8,y0+4,284,404,16);q.fill();q.strokeStyle='#d8ddea';q.lineWidth=2;q.stroke();
     var p={px:x0+150,py:y0+330,sc:.9,face:1,lift:0,rot:0,sx:1,sy:1,phase:0,walk:false,emo:'neutral',talk:false,seed:1};
@@ -126,9 +168,9 @@ function charsHTML(){
   P.actors.forEach(function(a){
     h+='<div class="card"><canvas class="pv" width="200" height="260" data-prev="'+a.id+'"></canvas><div class="f">'
      +'<input type="text" data-m="actor" data-id="'+a.id+'" data-k="name" value="'+esc(a.name)+'" aria-label="الاسم">'
-     +(a.kind==='img'?poseHTML(a):'<select data-m="actor" data-id="'+a.id+'" data-k="kind" aria-label="النوع">'+opts(KINDS,a.kind)+'</select>')
-     +(a.kind==='img'?'':'<div class="row"><label class="l">اللون</label><input type="color" data-m="actor" data-id="'+a.id+'" data-k="color" value="'+a.color+'">'
-     +'<label class="l">اللون الثانوي</label><input type="color" data-m="actor" data-id="'+a.id+'" data-k="accent" value="'+a.accent+'"></div>')
+     +(a.kind==='img'?poseHTML(a):a.kind==='face'?faceHTML(a):'<select data-m="actor" data-id="'+a.id+'" data-k="kind" aria-label="النوع">'+opts(KINDS,a.kind)+'</select>')
+     +(a.kind==='img'?'':'<div class="row"><label class="l">'+(a.kind==='face'?'لون الملابس':'اللون')+'</label><input type="color" data-m="actor" data-id="'+a.id+'" data-k="color" value="'+a.color+'">'
+     +'<label class="l">'+(a.kind==='face'?'لون اليدين':'اللون الثانوي')+'</label><input type="color" data-m="actor" data-id="'+a.id+'" data-k="accent" value="'+a.accent+'"></div>')
      +'<div><button class="btn sm dng" data-a="del-actor" data-id="'+a.id+'">حذف</button></div></div></div>';
   });
   return h+galleryHTML()+modelsHTML();

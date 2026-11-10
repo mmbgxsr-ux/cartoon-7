@@ -153,3 +153,53 @@ test("recalc turns say/sfx steps into time-ordered audio events", () => {
   assert.ok(ev.some((e) => e.k === "blip"));
   for (let i = 1; i < ev.length; i++) assert.ok(ev[i].T >= ev[i - 1].T);
 });
+
+test("cleanProject keeps a valid photo-head actor and clamps its framing", () => {
+  const p = base();
+  Object.assign(p.actors[0], { kind: "face", img: PNG, body: "girl", zoom: 9, fx: -5, fy: "x" });
+  const a = plain(app.cleanProject(p)).actors[0];
+  assert.equal(a.kind, "face");
+  assert.equal(a.img, PNG);
+  assert.equal(a.body, "girl");
+  assert.equal(a.zoom, 3);
+  assert.equal(a.fx, -1);
+  assert.equal(a.fy, 0);
+
+  const q = base();
+  Object.assign(q.actors[0], { kind: "face", img: PNG, body: "robot" });
+  assert.equal(plain(app.cleanProject(q)).actors[0].body, "boy");
+});
+
+test("cleanProject rejects a photo-head actor with a non-image source", () => {
+  for (const evil of ["javascript:alert(1)", "data:text/html;base64,PHNjcmlwdD4=", 'data:image/png;base64,AAA"onerror="x']) {
+    const p = base();
+    Object.assign(p.actors[0], { kind: "face", img: evil });
+    const a = plain(app.cleanProject(p)).actors[0];
+    assert.equal(a.kind, "cat");
+    assert.equal(a.img, undefined);
+  }
+});
+
+test("photo-head actors draw in every emotion and action without throwing", () => {
+  const calls = [];
+  const g = new Proxy({}, {
+    get: (t, k) => (k in t ? t[k] : (...args) => { calls.push([k, args]); }),
+    set: (t, k, v) => { t[k] = v; return true; },
+  });
+  const actor = { id: "x1", name: "F", kind: "face", body: "boy", color: "#3a86ff", accent: "#f1c27d", img: PNG, zoom: 1.5, fx: 0.3, fy: -0.2 };
+  const pose = (extra) => Object.assign({ px: 100, py: 200, sc: 1, face: 1, lift: 0, rot: 0, sx: 1, sy: 1, phase: 1, walk: false, emo: "neutral", talk: false, seed: 1, vis: null }, extra);
+
+  app.drawActor(g, actor, pose({}), 0); // first draw registers the image
+  app.IMGC.fx1.ok = true; // pretend it finished loading
+  calls.length = 0;
+
+  const cases = [];
+  for (const emo of Object.keys(app.EMO)) cases.push({ emo });
+  for (const act of Object.keys(app.ACTN)) cases.push({ act });
+  cases.push({ walk: true }, { walk: true, run: true, lift: 10 }, { talk: true, vis: [14, 11] }, { talk: true });
+  for (const body of ["boy", "girl"]) {
+    for (const c of cases) assert.doesNotThrow(() => app.drawActor(g, { ...actor, body }, pose(c), 0.4), JSON.stringify(c));
+  }
+  const photoDraws = calls.filter(([k, a]) => k === "drawImage" && a.length === 9);
+  assert.equal(photoDraws.length, cases.length * 2);
+});

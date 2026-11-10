@@ -32,7 +32,7 @@ function recalc(){
   EV=[];P.scenes.forEach(function(s,i){var t0=SEG[i].t0;s.steps.forEach(function(st){
     if(st.type==='sfx')EV.push({T:t0+st.t,k:'sfx',v:st.sfx});
     else if(st.type==='say'&&st.aud)EV.push({T:t0+st.t,k:'voice',v:st.aud});
-    else if(st.type==='say'){var tx=st.text||'',n=tx.length,pc=PITCH[actorOf(st.actor).kind]||1;
+    else if(st.type==='say'){var tx=st.text||'',n=tx.length,ao=actorOf(st.actor),pc=PITCH[ao.kind==='face'?(ao.body==='girl'?'girl':'boy'):ao.kind]||1;
       for(var c=0;c<n;c+=2){if(tx.charAt(c)!==' ')EV.push({T:t0+st.t+(c/Math.max(1,n))*st.d*.8,k:'blip',v:pc})}}})});
   EV.sort(function(a,b){return a.T-b.T});
 }
@@ -61,8 +61,9 @@ function cleanProject(o){
   if(!o||!Array.isArray(o.scenes)||!o.scenes.length||!Array.isArray(o.actors)||!o.actors.length)return null;
   var hex=function(c,d){return /^#[0-9a-f]{6}$/i.test(c||'')?c:d},ids=Object.create(null),idmap=Object.create(null);
   var imgOk=function(u,max){return typeof u==='string'&&u.length<max&&/^data:image\/(png|webp|jpeg);base64,[A-Za-z0-9+\/=]+$/.test(u)};
-  var actors=o.actors.slice(0,6).map(function(a){var id=cleanId(a.id);while(ids[id])id=uid();ids[id]=1;idmap[String(a.id)]=id;var isImg=a.kind==='img'&&imgOk(a.img,1200000);
-    var r={id:id,name:String(a.name||'شخصية').slice(0,30),kind:isImg?'img':own(KINDS,a.kind)?a.kind:'cat',color:hex(a.color,'#f4a259'),accent:hex(a.accent,'#ffe6c7')};if(isImg){r.img=a.img;if(a.poses&&typeof a.poses==='object'){var pz={};Object.keys(POSEN).forEach(function(k){if(imgOk(a.poses[k],1200000))pz[k]=a.poses[k]});if(Object.keys(pz).length)r.poses=pz}}return r});
+  var actors=o.actors.slice(0,6).map(function(a){var id=cleanId(a.id);while(ids[id])id=uid();ids[id]=1;idmap[String(a.id)]=id;var isImg=a.kind==='img'&&imgOk(a.img,1200000),isFace=a.kind==='face'&&imgOk(a.img,1200000);
+    var r={id:id,name:String(a.name||'شخصية').slice(0,30),kind:isImg?'img':isFace?'face':own(KINDS,a.kind)?a.kind:'cat',color:hex(a.color,'#f4a259'),accent:hex(a.accent,'#ffe6c7')};if(isFace){r.img=a.img;r.body=a.body==='girl'?'girl':'boy';r.zoom=numOr(a.zoom,1,1,3);r.fx=numOr(a.fx,0,-1,1);r.fy=numOr(a.fy,0,-1,1)}
+    if(isImg){r.img=a.img;if(a.poses&&typeof a.poses==='object'){var pz={};Object.keys(POSEN).forEach(function(k){if(imgOk(a.poses[k],1200000))pz[k]=a.poses[k]});if(Object.keys(pz).length)r.poses=pz}}return r});
   var scenes=o.scenes.slice(0,60).map(function(sc){
     var cast=(Array.isArray(sc.cast)?sc.cast:[]).filter(function(c){return c&&idmap[c.actor]}).map(function(c){return{actor:idmap[c.actor],x:numOr(c.x,50,0,100),y:numOr(c.y,82,60,95),flip:!!c.flip}});
     var steps=(Array.isArray(sc.steps)?sc.steps:[]).filter(function(x){return x.type==='move'||x.type==='say'||x.type==='act'||x.type==='sfx'}).map(function(x){
