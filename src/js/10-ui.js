@@ -48,7 +48,7 @@ function planHTML(){
      +'<div class="hint">'+(s.kind==='card'?(s.mode==='credits'?'شارات':'عنوان')+' · '+s.dur+' ث':bgName(s)+' · '+s.dur+' ث · '+s.cast.length+' شخصيات')+'</div>'
      +'<div class="row"><button class="btn sm" data-a="go-prod" data-i="'+i+'">تحرير</button>'
      +'<button class="btn sm" data-a="up" data-i="'+i+'" aria-label="تقديم">▲</button><button class="btn sm" data-a="down" data-i="'+i+'" aria-label="تأخير">▼</button>'
-     +'<button class="btn sm" data-a="dup" data-i="'+i+'">نسخ</button><button class="btn sm dng" data-a="del-scene" data-i="'+i+'">حذف</button></div></div></div>';
+     +'<button class="btn sm" data-a="dup" data-i="'+i+'">نسخ</button><button class="btn sm" data-a="dup-edit" data-i="'+i+'">نسخ وتعديل</button><button class="btn sm dng" data-a="del-scene" data-i="'+i+'">حذف</button></div></div></div>';
   });
   return h;
 }
