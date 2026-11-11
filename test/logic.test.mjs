@@ -244,3 +244,16 @@ test("photo sprites draw every emotion with its overlay", () => {
   for (const emo of emos) assert.doesNotThrow(() => app.drawActor(g, actor, pose({ emo }), 0.4), emo);
   assert.equal(calls.filter(([k, a]) => k === "drawImage" && a.length === 5).length, emos.length);
 });
+
+test("pose sheet maps grid cells to poses in reading order and skips blanks", () => {
+  const names = app.sheetNames();
+  assert.equal(names[0], "img");
+  assert.deepEqual(plain(names.slice(1)), plain(Object.keys(app.POSEN)));
+  assert.equal(app.sheetLabel("img"), "عادي");
+  assert.match(app.sheetHint(), /1\. عادي/);
+  const flat = new Uint8ClampedArray(64 * 4).fill(200);
+  assert.equal(app.cellBlank({ getImageData: () => ({ data: flat }) }, 8, 8), true);
+  const varied = new Uint8ClampedArray(64 * 4).fill(255);
+  for (let i = 0; i < 32; i++) varied[i * 4] = varied[i * 4 + 1] = varied[i * 4 + 2] = 20;
+  assert.equal(app.cellBlank({ getImageData: () => ({ data: varied }) }, 8, 8), false);
+});

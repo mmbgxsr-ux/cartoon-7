@@ -137,12 +137,60 @@ function swapFace(id){
   pickImage(function(c){var a=P.actors.filter(function(x){return x.id===id})[0];if(!a||a.kind!=='face')return;
     a.img=canvasUrl(c,false,wantCartoon());a.zoom=1.3;a.fx=0;a.fy=c.height>c.width?.6:0;refresh();renderPanel();toast('تم تغيير الصورة')},480);
 }
+/* pose sheet: one image split into a grid; cells are read left-to-right, top-to-bottom */
+function sheetNames(){return ['img'].concat(Object.keys(POSEN))}
+function sheetLabel(k){return k==='img'?'عادي':POSEN[k]}
+function sheetDims(){
+  var c=$('#sheetCols'),r=$('#sheetRows');
+  return {cols:clamp(parseInt(c&&c.value,10)||3,1,6),rows:clamp(parseInt(r&&r.value,10)||3,1,6)};
+}
+function cellBlank(q,w,h){
+  var d=q.getImageData(0,0,w,h).data,lo=255,hi=0,st=Math.max(1,Math.floor(d.length/4/400))*4;
+  for(var i=0;i<d.length;i+=st){if(d[i+3]<10)continue;var l=(d[i]+d[i+1]+d[i+2])/3;if(l<lo)lo=l;if(l>hi)hi=l}
+  return hi-lo<14;
+}
+function sheetCells(c,cols,rows,rm,ct){
+  var names=sheetNames(),cw=Math.floor(c.width/cols),ch=Math.floor(c.height/rows),out={},n=Math.min(names.length,cols*rows);
+  for(var i=0;i<n;i++){
+    var cc=document.createElement('canvas');cc.width=cw;cc.height=ch;var q=cc.getContext('2d');
+    q.drawImage(c,(i%cols)*cw,Math.floor(i/cols)*ch,cw,ch,0,0,cw,ch);
+    if(cellBlank(q,cw,ch))continue;
+    out[names[i]]=canvasUrl(cc,rm,ct)}
+  return out;
+}
+function sheetData(c,cols,rows,rm,ct){
+  var cells=sheetCells(c,cols,rows,rm,ct),img=cells.img,poses={};
+  Object.keys(POSEN).forEach(function(k){if(cells[k])poses[k]=cells[k]});
+  return {img:img,poses:poses};
+}
+function addSheetActor(){
+  if(P.actors.length>=6){toast('الحد الأقصى 6 شخصيات، احذف شخصية أولًا');return}
+  var d=sheetDims(),rm=$('#rmbg')?$('#rmbg').checked:true;
+  pickImage(function(c,fl){
+    if(P.actors.length>=6)return;
+    var r=sheetData(c,d.cols,d.rows,rm,wantCartoon());
+    if(!r.img){toast('الخانة الأولى فارغة، ضع وضع «عادي» فيها');return}
+    var id=uid(),nm=(fl.name||'').replace(/\.[^.]+$/,'').slice(0,20)||'شخصية';
+    var a={id:id,name:nm,kind:'img',color:'#8d99ae',accent:'#e8eaf0',img:r.img};if(Object.keys(r.poses).length)a.poses=r.poses;
+    P.actors.push(a);addToScene(id);refresh();renderPanel();toast('أضفت «'+nm+'» بـ '+(1+Object.keys(r.poses).length)+' أوضاع')},380*Math.max(d.cols,d.rows));
+}
+function fillFromSheet(id){
+  var d=sheetDims(),rm=$('#rmbg')?$('#rmbg').checked:true;
+  pickImage(function(c){var a=P.actors.filter(function(x){return x.id===id})[0];if(!a||a.kind!=='img')return;
+    var r=sheetData(c,d.cols,d.rows,rm,wantCartoon());
+    if(r.img)a.img=r.img;if(Object.keys(r.poses).length){a.poses=a.poses||{};for(var k in r.poses)a.poses[k]=r.poses[k]}
+    refresh();renderPanel();toast('تم ملء '+(Object.keys(r.poses).length+(r.img?1:0))+' أوضاع من الورقة')},380*Math.max(d.cols,d.rows));
+}
+function sheetHint(){
+  return '<p class="hint">ارسم أو ولّد الشخصية في أوضاع مختلفة على <b>صورة واحدة</b> مقسومة لشبكة متساوية وخلفية موحدة. الأداة تقص كل خانة وتوزعها بالترتيب من اليسار لليمين ومن الأعلى للأسفل: '
+    +sheetNames().map(function(k,i){return (i+1)+'. '+sheetLabel(k)}).join(' · ')+'. الخانة الفارغة تُتجاهل، والخانة الأولى (عادي) مطلوبة.</p>';
+}
 function poseHTML(a){
   var h='<div class="hint">شخصية من صورة. أضف صورًا لأوضاع أخرى لتتبدل تلقائيًا (اختياري).</div><div class="pgrid">';
   Object.keys(POSEN).forEach(function(k){var u=(a.poses||{})[k];
     h+='<div class="pz"><button class="btn sm" data-a="pose-add" data-id="'+a.id+'" data-pose="'+k+'" aria-label="'+(u?'استبدال':'إضافة')+' صورة '+POSEN[k]+'">'+(u?'<img src="'+u+'" alt="">':'<span class="plus">+</span>')+'<span>'+POSEN[k]+'</span></button>'
       +(u?'<button class="x" data-a="pose-del" data-id="'+a.id+'" data-pose="'+k+'" aria-label="حذف صورة '+POSEN[k]+'">×</button>':'')+'</div>'});
-  return h+'</div><div class="row"><button class="btn sm" data-a="cartoon-actor" data-id="'+a.id+'">حوّل الصورة لكرتون</button></div>';
+  return h+'</div><div class="row"><button class="btn sm" data-a="sheet-fill" data-id="'+a.id+'">املأ الأوضاع من ورقة</button><button class="btn sm" data-a="cartoon-actor" data-id="'+a.id+'">حوّل الصورة لكرتون</button></div><div class="hint">«املأ الأوضاع من ورقة» يستخدم عدد الأعمدة والصفوف من قسم «ورقة أوضاع» أسفل التبويب.</div>';
 }
 function canvasUrl(c,rm,ct){
   if(rm)removeBg(c);if(ct)cartoonize(c);var u=encAlpha(c);
@@ -201,7 +249,7 @@ function setPhotoBG(){
 function galleryHTML(){
   var h='<h3>معرض الشخصيات</h3><p class="hint">اضغط شخصية لإضافتها إلى المشروع وإلى المشهد الحالي.</p><div class="row">';
   GAL.forEach(function(p0,i){h+='<button class="gal" data-a="gal-add" data-i="'+i+'"><canvas width="100" height="130" data-gal="'+i+'" aria-hidden="true"></canvas><span>'+esc(p0.n)+'</span></button>'});
-  return h+'</div><h3>تحويل الصور</h3><label class="row" style="gap:6px"><input type="checkbox" data-m="ui" data-k="cartoon" style="width:auto"'+(S.cartoon===false?'':' checked')+'> حوّل الصور التي أرفعها لشكل كرتوني</label><h3>شخصية بوجهك</h3><div class="row"><button class="btn pri" data-a="face-add">+ شخصية بوجه من صورة</button></div><p class="hint">اختر صورة واضحة لوجهك. يوضع الوجه على جسم كرتوني (ولد أو فتاة) فيمشي ويجري ويقفز ويلوّح ويصفّق ويرقص ويجلس ويتكلم مثل باقي الشخصيات، ويتغير تعبيره حسب الحوار. اضبط الإطار من بطاقة الشخصية.</p><h3>من معرض الصور</h3><label class="row" style="gap:6px"><input type="checkbox" id="rmbg" checked style="width:auto"> أزل الخلفية الموحدة تلقائيًا</label>'
+  return h+'</div><h3>تحويل الصور</h3><label class="row" style="gap:6px"><input type="checkbox" data-m="ui" data-k="cartoon" style="width:auto"'+(S.cartoon===false?'':' checked')+'> حوّل الصور التي أرفعها لشكل كرتوني</label><h3>شخصية بوجهك</h3><div class="row"><button class="btn pri" data-a="face-add">+ شخصية بوجه من صورة</button></div><p class="hint">اختر صورة واضحة لوجهك. يوضع الوجه على جسم كرتوني (ولد أو فتاة) فيمشي ويجري ويقفز ويلوّح ويصفّق ويرقص ويجلس ويتكلم مثل باقي الشخصيات، ويتغير تعبيره حسب الحوار. اضبط الإطار من بطاقة الشخصية.</p><h3>ورقة أوضاع</h3><div class="row"><label class="l">الأعمدة</label><input type="number" id="sheetCols" min="1" max="6" value="3" style="width:70px"><label class="l">الصفوف</label><input type="number" id="sheetRows" min="1" max="6" value="3" style="width:70px"></div><div class="row"><button class="btn pri" data-a="sheet-add">+ شخصية من ورقة أوضاع</button></div>'+sheetHint()+'<h3>من معرض الصور</h3><label class="row" style="gap:6px"><input type="checkbox" id="rmbg" checked style="width:auto"> أزل الخلفية الموحدة تلقائيًا</label>'
    +'<div class="row"><button class="btn" data-a="img-add">+ شخصية من صورة</button></div>'
    +'<p class="hint">تصبح الصورة شخصية تمشي وتقفز وتتكلم بحركة خفيفة، وتظهر عليها علامات الانفعال (قلوب، نوم، عرق، دموع، غضب) حسب الحوار. بعد إضافتها ستجد في بطاقتها خانات لصور أوضاعها (سعيد، حزين، يتكلم...) لتتبدل تلقائيًا. الأفضل صورة لشخص أو رسم كامل على خلفية موحدة. لا يوجد تزامن للشفاه مع الصور.</p>';
 }

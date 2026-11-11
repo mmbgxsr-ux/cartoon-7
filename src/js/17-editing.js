@@ -26,6 +26,8 @@ document.addEventListener('click',function(e){
   else if(a==='face-add')addFaceActor();
   else if(a==='face-swap')swapFace(el.dataset.id);
   else if(a==='cartoon-actor')cartoonActor(el.dataset.id);
+  else if(a==='sheet-add')addSheetActor();
+  else if(a==='sheet-fill')fillFromSheet(el.dataset.id);
   else if(a==='bg-photo')setPhotoBG();
   else if(a==='bg-clear'){s.bg='day';delete s.bgImg;delete s.bgCol;refresh();renderPanel()}
   else if(a==='save-frame')saveFrame();
