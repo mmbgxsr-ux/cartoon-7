@@ -57,13 +57,23 @@ function loadP(o){P=o;if(!P.music)P.music='happy';if(P.vol==null)P.vol=.6;if(!P.
 function undo(){if(S.rec)return;clearTimeout(save.h);pushHist();if(HI<=0){toast('لا شيء للتراجع عنه');histUI();return}HI--;loadP(JSON.parse(HST[HI]));toast('تراجعت')}
 function redo(){if(S.rec)return;if(HI>=HST.length-1){toast('لا شيء لإعادته');return}HI++;loadP(JSON.parse(HST[HI]));toast('أعدت')}
 function numOr(v,d,a,b){v=parseFloat(v);return isFinite(v)?clamp(v,a,b):d}
+var STRIPACT={idle:'وقوف وتنفّس',walk:'مشي',run:'جري',talk:'كلام',jump:'قفز',wave:'تلويح',sit:'جلوس'};
+var STRIPVIEW={side:'من الجنب',front:'من قدام',back:'من ورا'};
+var STRIPN={idle:4,walk:8,run:8,talk:4,jump:6,wave:6,sit:4};
+var KEYMODES={auto:'تلقائي',green:'أخضر',blue:'أزرق',magenta:'بينك',white:'أبيض'};
+var STRIPKEY=/^(idle|walk|run|talk|jump|wave|sit):(side|front|back)$/;
 function cleanProject(o){
   if(!o||!Array.isArray(o.scenes)||!o.scenes.length||!Array.isArray(o.actors)||!o.actors.length)return null;
   var hex=function(c,d){return /^#[0-9a-f]{6}$/i.test(c||'')?c:d},ids=Object.create(null),idmap=Object.create(null);
   var imgOk=function(u,max){return typeof u==='string'&&u.length<max&&/^data:image\/(png|webp|jpeg);base64,[A-Za-z0-9+\/=]+$/.test(u)};
   var actors=o.actors.slice(0,6).map(function(a){var id=cleanId(a.id);while(ids[id])id=uid();ids[id]=1;idmap[String(a.id)]=id;var isImg=a.kind==='img'&&imgOk(a.img,1200000),isFace=a.kind==='face'&&imgOk(a.img,1200000);
     var r={id:id,name:String(a.name||'شخصية').slice(0,30),kind:isImg?'img':isFace?'face':own(KINDS,a.kind)?a.kind:'cat',color:hex(a.color,'#f4a259'),accent:hex(a.accent,'#ffe6c7')};if(isFace){r.img=a.img;r.body=a.body==='girl'?'girl':'boy';r.zoom=numOr(a.zoom,1,1,3);r.fx=numOr(a.fx,0,-1,1);r.fy=numOr(a.fy,0,-1,1)}
-    if(isImg){r.img=a.img;if(a.poses&&typeof a.poses==='object'){var pz={};Object.keys(POSEN).forEach(function(k){if(imgOk(a.poses[k],1200000))pz[k]=a.poses[k]});if(Object.keys(pz).length)r.poses=pz}}return r});
+    if(isImg){r.img=a.img;if(a.poses&&typeof a.poses==='object'){var pz={};Object.keys(POSEN).forEach(function(k){if(imgOk(a.poses[k],1200000))pz[k]=a.poses[k]});if(Object.keys(pz).length)r.poses=pz}
+      if(a.dir==='L')r.dir='L';
+      if(a.strips&&typeof a.strips==='object'){var sz={},cnt=0;Object.keys(a.strips).forEach(function(k){var s=a.strips[k];
+        if(cnt<24&&STRIPKEY.test(k)&&s&&typeof s==='object'&&imgOk(s.img,3500000)){var n=Math.round(+s.n),cw=Math.round(+s.cw),ch=Math.round(+s.ch),hh=Math.round(+s.h);
+          if(n>=1&&n<=16&&cw>=8&&cw<=1600&&ch>=8&&ch<=2400&&hh>=8&&hh<=ch){sz[k]={img:s.img,n:n,cw:cw,ch:ch,h:hh};cnt++}}});
+        if(cnt)r.strips=sz}}return r});
   var scenes=o.scenes.slice(0,60).map(function(sc){
     var cast=(Array.isArray(sc.cast)?sc.cast:[]).filter(function(c){return c&&idmap[c.actor]}).map(function(c){return{actor:idmap[c.actor],x:numOr(c.x,50,0,100),y:numOr(c.y,82,60,95),flip:!!c.flip}});
     var steps=(Array.isArray(sc.steps)?sc.steps:[]).filter(function(x){return x.type==='move'||x.type==='say'||x.type==='act'||x.type==='sfx'}).map(function(x){

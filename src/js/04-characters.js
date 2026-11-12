@@ -96,21 +96,21 @@ function drawActor(g,a,p,T){
 function squash(hu){return(1+.14*Math.sin(hu*Math.PI))*(hu<.12?1-.2*(1-hu/.12):hu>.88?1-.2*((hu-.88)/.12):1)}
 function pose(sc,c,lt,T,idx){
   var moves=sc.steps.filter(function(s){return s.type==='move'&&s.actor===c.actor}).sort(function(a,b){return a.t-b.t});
-  var x=c.x,y=c.y,face=c.flip?-1:1,lift=0,sx=1,sy=1,rot=0,phase=0,walk=false,run=false;
+  var x=c.x,y=c.y,face=c.flip?-1:1,lift=0,sx=1,sy=1,rot=0,phase=0,walk=false,run=false,view=null,jp=null,ap=null;
   for(var i=0;i<moves.length;i++){var m=moves[i],dir=m.x>x?1:m.x<x?-1:face;
     if(lt>=m.t+m.d){x=m.x;y=m.y;face=dir;continue}
-    if(lt>m.t){var u=(lt-m.t)/m.d,dist=Math.abs(m.x-x);face=dir;
-      if(m.style==='hop'){var n=Math.max(1,Math.round(dist/14)),hu=(u*n)%1,q=squash(hu);var he=curveAt(m.curve,'hop',u);x=lerp(x,m.x,he);y=lerp(y,m.y,he);lift=Math.sin(hu*Math.PI)*70;sy=q;sx=1/q}
+    if(lt>m.t){var u=(lt-m.t)/m.d,dxm=m.x-x,dym=(m.y-y)*H/W,dist=Math.sqrt(dxm*dxm+dym*dym);face=dir;view=Math.abs(dym)>Math.abs(dxm)*1.3?(dym>0?'front':'back'):'side';
+      if(m.style==='hop'){var n=Math.max(1,Math.round(dist/14)),hu=(u*n)%1,q=squash(hu);var he=curveAt(m.curve,'hop',u);x=lerp(x,m.x,he);y=lerp(y,m.y,he);lift=Math.sin(hu*Math.PI)*70;sy=q;sx=1/q;jp=hu}
       else{var e=curveAt(m.curve,m.style,u);var nx=lerp(x,m.x,e),ny=lerp(y,m.y,e);
         if(m.style==='walk'||m.style==='run'){walk=true;run=m.style==='run';phase=dist*e/(run?9:14)*Math.PI;lift=Math.abs(Math.sin(phase))*(run?14:6);if(run)rot=.1*dir}else rot=.06*dir*Math.sin(u*Math.PI);x=nx;y=ny}}
     break}
   var act=null,acts=sc.steps.filter(function(s){return s.type==='act'&&s.actor===c.actor&&lt>=s.t&&lt<=s.t+s.d});
-  if(acts.length){var A0=acts[acts.length-1],au=clamp((lt-A0.t)/A0.d,0,1);act=A0.act;
+  if(acts.length){var A0=acts[acts.length-1],au=clamp((lt-A0.t)/A0.d,0,1);act=A0.act;ap=au;
     if(act==='dance'){rot+=Math.sin(T*6)*.12;lift+=Math.abs(Math.sin(T*6))*18;sy*=1+Math.abs(Math.sin(T*6))*.04}
     else if(act==='bow')rot+=.5*face*Math.sin(Math.PI*au);
-    else if(act==='jump'){var jn=Math.max(1,Math.round(A0.d/.7)),jh=(au*jn)%1,jq=squash(jh);lift+=Math.sin(jh*Math.PI)*80;sy*=jq;sx*=1/jq}}
+    else if(act==='jump'){var jn=Math.max(1,Math.round(A0.d/.7)),jh=(au*jn)%1,jq=squash(jh);lift+=Math.sin(jh*Math.PI)*80;sy*=jq;sx*=1/jq;jp=jh}}
   var emo='neutral',talk=false,tx=-1,vis=null;
   sc.steps.forEach(function(s){if(s.type==='say'&&s.actor===c.actor&&lt>=s.t&&s.t>tx){tx=s.t;if(lt<=s.t+s.d){talk=true;emo=s.emo||'neutral';vis=lipFor(s,lt)}else if(lt<=s.t+s.d+.6)emo=s.emo||'neutral'}});
   var seed=(idx+1)*1.7;sy*=1+Math.sin(T*3+seed)*.012;
-  return {px:x/100*W,py:y/100*H,sc:lerp(.78,1.3,clamp((y-60)/35,0,1)),face:face,lift:lift,rot:rot,sx:sx,sy:sy,phase:phase,walk:walk,run:run,act:act,emo:emo,talk:talk,vis:vis,seed:seed,y:y};
+  return {px:x/100*W,py:y/100*H,sc:lerp(.78,1.3,clamp((y-60)/35,0,1)),face:face,lift:lift,rot:rot,sx:sx,sy:sy,phase:phase,walk:walk,run:run,act:act,emo:emo,talk:talk,vis:vis,seed:seed,y:y,view:view,jp:jp,ap:ap};
 }

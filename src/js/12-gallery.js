@@ -9,6 +9,15 @@ function drawImgActor(g,a,p,T){
   var ps=a.poses||{},base=getImgKey('a'+a.id,a.img),Hs=270,im=base,hasEmo=false;
   Object.keys(ps).forEach(function(k){getImgKey('a'+a.id+':'+k,ps[k])});
   function pick(k){if(!ps[k])return null;var c=IMGC['a'+a.id+':'+k];return c&&c.ok&&c.src===ps[k]?c.im:null}
+  var fl=a.dir==='L'?-1:1,sp=stripPick(a,p,T);
+  if(sp&&p.emo&&p.emo!=='neutral'&&ps[p.emo]&&(sp.act==='idle'||sp.act==='talk'))sp=null;
+  if(sp){var sim=getImgKey('s'+a.id+':'+sp.key,sp.s.img);
+    if(sim){var k2=Hs/sp.s.h,cw2=sp.s.cw*k2,ch2=sp.s.ch*k2;
+      if(sp.act==='walk'||sp.act==='run'){g.translate(0,p.lift);g.rotate(-p.rot)}
+      if(sp.act==='jump')g.scale(1/p.sx,1/p.sy);
+      g.scale(fl,1);g.drawImage(sim,sp.i*sp.s.cw,0,sp.s.cw,sp.s.ch,-cw2/2,-ch2,cw2,ch2);g.scale(fl,1);
+      if(p.emo&&p.emo!=='neutral')imgExtras(g,p.emo,cw2,ch2,T);
+      return}}
   var cand=null;
   if(p.walk&&Math.sin(p.phase)>0)cand=pick('walk');
   if(!cand&&p.talk&&p.vis&&p.vis[0]>5)cand=pick('talk');
@@ -30,7 +39,7 @@ function drawImgActor(g,a,p,T){
   if(p.act==='sit')sy*=.8;if(p.act==='wave'||p.act==='clap')rot+=Math.sin(T*9)*.04;
   if(p.lift>8){sy*=1.06;sx*=.96}
   var tc=!hasEmo&&EMOTINT[p.emo]?tintedImg(im,EMOTINT[p.emo],a.id+':'+p.emo):im;
-  g.translate(dx,0);g.rotate(rot);g.scale(sx,sy);g.drawImage(tc,-w/2,-h,w,h);
+  g.translate(dx,0);g.rotate(rot);g.scale(sx*fl,sy);g.drawImage(tc,-w/2,-h,w,h);g.scale(fl,1);
   if(!hasEmo&&p.emo&&p.emo!=='neutral')imgExtras(g,p.emo,w,h,T);
 }
 var EMOTINT={angry:'rgba(255,50,30,.28)',sad:'rgba(80,110,255,.16)',scared:'rgba(210,235,255,.22)',sleepy:'rgba(40,50,130,.14)'};
@@ -142,7 +151,7 @@ function sheetNames(){return ['img'].concat(Object.keys(POSEN))}
 function sheetLabel(k){return k==='img'?'عادي':POSEN[k]}
 function sheetDims(){
   var c=$('#sheetCols'),r=$('#sheetRows');
-  return {cols:clamp(parseInt(c&&c.value,10)||3,1,6),rows:clamp(parseInt(r&&r.value,10)||3,1,6)};
+  return {cols:clamp(parseInt(c&&c.value,10)||5,1,6),rows:clamp(parseInt(r&&r.value,10)||2,1,6)};
 }
 function cellBlank(q,w,h){
   var d=q.getImageData(0,0,w,h).data,lo=255,hi=0,st=Math.max(1,Math.floor(d.length/4/400))*4;
@@ -190,7 +199,7 @@ function poseHTML(a){
   Object.keys(POSEN).forEach(function(k){var u=(a.poses||{})[k];
     h+='<div class="pz"><button class="btn sm" data-a="pose-add" data-id="'+a.id+'" data-pose="'+k+'" aria-label="'+(u?'استبدال':'إضافة')+' صورة '+POSEN[k]+'">'+(u?'<img src="'+u+'" alt="">':'<span class="plus">+</span>')+'<span>'+POSEN[k]+'</span></button>'
       +(u?'<button class="x" data-a="pose-del" data-id="'+a.id+'" data-pose="'+k+'" aria-label="حذف صورة '+POSEN[k]+'">×</button>':'')+'</div>'});
-  return h+'</div><div class="row"><button class="btn sm" data-a="sheet-fill" data-id="'+a.id+'">املأ الأوضاع من ورقة</button><button class="btn sm" data-a="cartoon-actor" data-id="'+a.id+'">حوّل الصورة لكرتون</button></div><div class="hint">«املأ الأوضاع من ورقة» يستخدم عدد الأعمدة والصفوف من قسم «ورقة أوضاع» أسفل التبويب.</div>';
+  return h+'</div><div class="row"><button class="btn sm" data-a="sheet-fill" data-id="'+a.id+'">املأ الأوضاع من ورقة</button><button class="btn sm" data-a="cartoon-actor" data-id="'+a.id+'">حوّل الصورة لكرتون</button></div><div class="hint">«املأ الأوضاع من ورقة» يستخدم عدد الأعمدة والصفوف من قسم «ورقة أوضاع» أسفل التبويب.</div>'+stripHTML(a);
 }
 function canvasUrl(c,rm,ct){
   if(rm)removeBg(c);if(ct)cartoonize(c);var u=encAlpha(c);
@@ -249,14 +258,14 @@ function setPhotoBG(){
 function galleryHTML(){
   var h='<h3>معرض الشخصيات</h3><p class="hint">اضغط شخصية لإضافتها إلى المشروع وإلى المشهد الحالي.</p><div class="row">';
   GAL.forEach(function(p0,i){h+='<button class="gal" data-a="gal-add" data-i="'+i+'"><canvas width="100" height="130" data-gal="'+i+'" aria-hidden="true"></canvas><span>'+esc(p0.n)+'</span></button>'});
-  return h+'</div><h3>تحويل الصور</h3><label class="row" style="gap:6px"><input type="checkbox" data-m="ui" data-k="cartoon" style="width:auto"'+(S.cartoon===false?'':' checked')+'> حوّل الصور التي أرفعها لشكل كرتوني</label><h3>شخصية بوجهك</h3><div class="row"><button class="btn pri" data-a="face-add">+ شخصية بوجه من صورة</button></div><p class="hint">اختر صورة واضحة لوجهك. يوضع الوجه على جسم كرتوني (ولد أو فتاة) فيمشي ويجري ويقفز ويلوّح ويصفّق ويرقص ويجلس ويتكلم مثل باقي الشخصيات، ويتغير تعبيره حسب الحوار. اضبط الإطار من بطاقة الشخصية.</p><h3>ورقة أوضاع</h3><div class="row"><label class="l">الأعمدة</label><input type="number" id="sheetCols" min="1" max="6" value="3" style="width:70px"><label class="l">الصفوف</label><input type="number" id="sheetRows" min="1" max="6" value="3" style="width:70px"></div><div class="row"><button class="btn pri" data-a="sheet-add">+ شخصية من ورقة أوضاع</button></div>'+sheetHint()+'<h3>من معرض الصور</h3><label class="row" style="gap:6px"><input type="checkbox" id="rmbg" checked style="width:auto"> أزل الخلفية الموحدة تلقائيًا</label>'
+  return h+'</div><h3>تحويل الصور</h3><label class="row" style="gap:6px"><input type="checkbox" data-m="ui" data-k="cartoon" style="width:auto"'+(S.cartoon===false?'':' checked')+'> حوّل الصور التي أرفعها لشكل كرتوني</label><h3>شخصية بوجهك</h3><div class="row"><button class="btn pri" data-a="face-add">+ شخصية بوجه من صورة</button></div><p class="hint">اختر صورة واضحة لوجهك. يوضع الوجه على جسم كرتوني (ولد أو فتاة) فيمشي ويجري ويقفز ويلوّح ويصفّق ويرقص ويجلس ويتكلم مثل باقي الشخصيات، ويتغير تعبيره حسب الحوار. اضبط الإطار من بطاقة الشخصية.</p><h3>ورقة أوضاع</h3><div class="row"><label class="l">الأعمدة</label><input type="number" id="sheetCols" min="1" max="6" value="5" style="width:70px"><label class="l">الصفوف</label><input type="number" id="sheetRows" min="1" max="6" value="2" style="width:70px"></div><div class="row"><button class="btn pri" data-a="sheet-add">+ شخصية من ورقة أوضاع</button></div>'+sheetHint()+'<h3>شخصية من شريط حركة</h3>'+stripCtl('stnew','walk')+'<div class="row"><label class="l">الصورة تنظر إلى</label><select id="stnew-dir" aria-label="اتجاه الصورة">'+opts({L:'اليسار',R:'اليمين'},'L')+'</select></div><div class="row"><button class="btn pri" data-a="strip-new">+ شخصية من شريط حركة</button></div><p class="hint">ارفع شريط مشي (صورة واحدة فيها صور متتالية على خلفية خضراء مثلًا). تُفصل الخلفية والصور تلقائيًا. بعدها أضف باقي الحركات (جري، قفز، كلام...) من بطاقة الشخصية.</p><h3>من معرض الصور</h3><label class="row" style="gap:6px"><input type="checkbox" id="rmbg" checked style="width:auto"> أزل الخلفية الموحدة تلقائيًا</label>'
    +'<div class="row"><button class="btn" data-a="img-add">+ شخصية من صورة</button></div>'
    +'<p class="hint">تصبح الصورة شخصية تمشي وتقفز وتتكلم بحركة خفيفة، وتظهر عليها علامات الانفعال (قلوب، نوم، عرق، دموع، غضب) حسب الحوار. بعد إضافتها ستجد في بطاقتها خانات لصور أوضاعها (سعيد، حزين، يتكلم...) لتتبدل تلقائيًا. الأفضل صورة لشخص أو رسم كامل على خلفية موحدة. لا يوجد تزامن للشفاه مع الصور.</p>';
 }
 var MPOSES=[['عادي',{emo:'neutral'}],['سعيد',{emo:'happy'}],['حزين',{emo:'sad'}],['متفاجئ',{emo:'surprised'}],
   ['غاضب',{emo:'angry'}],['نعسان',{emo:'sleepy',T:.4}],['خائف',{emo:'scared',T:.4}],['محب',{emo:'love',T:.4}],
-  ['يتكلم',{emo:'happy',talk:true,vis:[14,11]}],['يمشي',{emo:'neutral',walk:true,phase:1.1}],['يجري',{emo:'happy',walk:true,run:true,phase:1.1,rot:.1,lift:10}],['يقفز',{emo:'happy',lift:70,sy:.92,sx:1.08}],
-  ['يجلس',{emo:'happy',act:'sit'}],['يلوّح',{emo:'happy',act:'wave',T:.45}],['يرقص',{emo:'happy',act:'dance',T:.45,rot:.1,lift:14}],['يصفّق',{emo:'happy',act:'clap',T:.45}]];
+  ['يتكلم',{emo:'happy',talk:true,vis:[14,11]}],['يمشي',{emo:'neutral',walk:true,phase:1.1}],['يجري',{emo:'happy',walk:true,run:true,phase:1.1,rot:.1,lift:10}],['يقفز',{emo:'happy',lift:70,sy:.92,sx:1.08,jp:.5}],
+  ['يجلس',{emo:'happy',act:'sit',ap:1}],['يلوّح',{emo:'happy',act:'wave',T:.45}],['يرقص',{emo:'happy',act:'dance',T:.45,rot:.1,lift:14}],['يصفّق',{emo:'happy',act:'clap',T:.45}]];
 function drawModel(c,a){
   var q=c.getContext('2d');q.setTransform(1,0,0,1,0,0);q.clearRect(0,0,c.width,c.height);q.fillStyle='#fff';q.fillRect(0,0,c.width,c.height);
   q.fillStyle='#161b2b';q.textAlign='center';q.font='700 30px '+FONT;q.fillText('ورقة النموذج · '+a.name+' ('+(KINDS[a.kind]||(a.kind==='face'?'وجه من صورة':'صورة'))+')',600,42);

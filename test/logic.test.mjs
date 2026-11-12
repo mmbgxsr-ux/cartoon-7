@@ -257,3 +257,120 @@ test("pose sheet maps grid cells to poses in reading order and skips blanks", ()
   for (let i = 0; i < 32; i++) varied[i * 4] = varied[i * 4 + 1] = varied[i * 4 + 2] = 20;
   assert.equal(app.cellBlank({ getImageData: () => ({ data: varied }) }, 8, 8), false);
 });
+
+/* ---------- motion strips ---------- */
+function rgba(w, h, fill) {
+  const d = new Uint8Array(w * h * 4);
+  for (let i = 0; i < w * h; i++) { d[i * 4] = fill[0]; d[i * 4 + 1] = fill[1]; d[i * 4 + 2] = fill[2]; d[i * 4 + 3] = fill[3] ?? 255; }
+  return d;
+}
+function rect(d, w, x0, x1, y0, y1, c) {
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) { const j = (y * w + x) * 4; d[j] = c[0]; d[j + 1] = c[1]; d[j + 2] = c[2]; d[j + 3] = 255; }
+}
+
+test("detectKey recognises the background colour from the corners", () => {
+  for (const [col, want] of [[[0, 255, 0], "green"], [[0, 0, 255], "blue"], [[255, 0, 255], "magenta"], [[250, 250, 250], "white"], [[128, 128, 128], null]]) {
+    assert.equal(app.detectKey(rgba(40, 40, col), 40, 40), want, want);
+  }
+  assert.equal(app.detectKey(rgba(40, 40, [0, 0, 0, 0]), 40, 40), "none");
+});
+
+test("keyImage removes the key colour, keeps similar-looking clothes and despills edges", () => {
+  const w = 5, h = 1, d = new Uint8Array(w * 4);
+  const px = (i, c) => { d[i * 4] = c[0]; d[i * 4 + 1] = c[1]; d[i * 4 + 2] = c[2]; d[i * 4 + 3] = 255; };
+  px(0, [0, 255, 0]);      // pure key
+  px(1, [240, 140, 40]);   // skin
+  px(2, [100, 120, 50]);   // olive clothes: green-ish but not the key
+  px(3, [100, 170, 100]);  // edge pixel mixed with the key
+  px(4, [60, 200, 60]);    // almost key
+  app.keyImage(d, w, h, "green");
+  assert.equal(d[3], 0);
+  assert.deepEqual([d[4], d[5], d[6], d[7]], [240, 140, 40, 255]);
+  assert.deepEqual([d[8], d[9], d[10], d[11]], [100, 120, 50, 255]);
+  assert.ok(d[15] > 0 && d[15] < 255, "edge pixel is semi-transparent");
+  assert.ok(d[13] <= Math.max(d[12], d[14]), "green spill is removed from the edge pixel");
+  assert.equal(d[19], 0);
+});
+
+test("stripLayout cuts frames at the gaps and anchors each on its body and feet", () => {
+  const w = 600, h = 100, d = rgba(w, h, [0, 0, 0, 0]), c = [200, 100, 50];
+  rect(d, w, 20, 70, 10, 90, c);     // frame 1: 51 wide (narrowest, tie with 3)
+  rect(d, w, 230, 300, 20, 95, c);   // frame 2: 71 wide, feet a bit lower
+  rect(d, w, 420, 470, 12, 90, c);   // frame 3
+  const L = app.stripLayout(d, w, h, 3);
+  assert.equal(L.mode, "gaps");
+  assert.equal(L.frames.length, 3);
+  assert.deepEqual(plain(L.frames.map((f) => [f.xmin, f.xmax])), [[20, 70], [230, 300], [420, 470]]);
+  assert.equal(L.st, 0);
+  assert.ok(L.cw >= 2 * 36 && L.H >= 80, "cell is big enough for the widest frame");
+  assert.ok(Math.abs(L.frames[1].ax - 265) < 1, "anchor sits on the body centre");
+
+  const bar = rgba(w, h, [0, 0, 0, 0]);   // a figure bridged by a ground line: no empty columns
+  rect(bar, w, 20, 470, 90, 92, c);
+  rect(bar, w, 20, 470, 10, 12, c);
+  assert.equal(app.stripLayout(bar, w, h, 3).mode, "equal");
+  assert.equal(app.stripLayout(rgba(10, 10, [0, 0, 0, 0]), 10, 10, 3), null);
+});
+
+test("stripPick chooses action, angle and frame, with sensible fallbacks", () => {
+  const s = (n) => ({ img: PNG, n, cw: 100, ch: 200, h: 190 });
+  const a = { strips: { "walk:side": s(8), "idle:front": s(4), "talk:front": s(4), "jump:side": s(6), "sit:front": s(4) } };
+  const P0 = { phase: 0, walk: false, run: false, talk: false, act: null, vis: null, seed: 1, view: null, jp: null, ap: null };
+  const pk = (extra, T = 0) => app.stripPick(a, { ...P0, ...extra }, T);
+  let r = pk({ walk: true, view: "side", phase: Math.PI / 2 });
+  assert.equal(r.key, "walk:side"); assert.equal(r.i, 2);
+  r = pk({ walk: true, view: "front", phase: 0 });
+  assert.equal(r.key, "walk:side", "missing front walk falls back to the side strip");
+  r = pk({ walk: true, run: true, view: "side", phase: 0 });
+  assert.equal(r.key, "walk:side", "missing run falls back to walk");
+  assert.equal(pk({ jp: 0.5, view: "side" }).i, 3);
+  assert.equal(pk({ jp: 0.999 }).i, 5);
+  r = pk({}, 1);
+  assert.equal(r.key, "idle:front"); assert.equal(r.i, 3);
+  assert.equal(pk({ talk: true, vis: [14, 11] }).i, 3);
+  assert.equal(pk({ talk: true, vis: [0, 10] }).i, 0);
+  assert.equal(pk({ act: "sit", ap: 1 }).key, "sit:front");
+  assert.equal(pk({ act: "sit", ap: 1 }).i, 3);
+  assert.equal(pk({ act: "wave" }), null, "no wave strip: the normal drawing is used");
+  assert.equal(app.stripPick({ strips: { "walk:side": s(8) } }, { ...P0 }, 0), null, "no idle strip: base image is used");
+  assert.equal(app.stripPick({}, { ...P0 }, 0), null);
+  assert.equal(app.stripPick({ strips: { "idle:front": s(4) } }, { ...P0, talk: true, vis: [14, 8] }, 0).key, "idle:front");
+});
+
+test("cleanProject keeps valid motion strips and drops bad ones", () => {
+  const s = (over) => ({ img: PNG, n: 8, cw: 200, ch: 380, h: 370, ...over });
+  const p = base();
+  Object.assign(p.actors[0], { kind: "img", img: PNG, dir: "L", strips: {
+    "walk:side": s(), "idle:front": s({ n: 4 }),
+    "fly:side": s(), "walk:left": s(), "run:side": s({ n: 99 }), "jump:side": s({ img: "javascript:alert(1)" }), "talk:front": s({ h: 9999 }), "sit:back": null,
+  } });
+  const a = plain(app.cleanProject(p)).actors[0];
+  assert.equal(a.dir, "L");
+  assert.deepEqual(Object.keys(a.strips).sort(), ["idle:front", "walk:side"]);
+  assert.equal(a.strips["walk:side"].n, 8);
+
+  const q = base();
+  Object.assign(q.actors[0], { kind: "img", img: PNG, dir: "X", strips: { "walk:side": s() } });
+  assert.equal(plain(app.cleanProject(q)).actors[0].dir, undefined);
+  const r = base();
+  Object.assign(r.actors[0], { kind: "cat", strips: { "walk:side": s() }, dir: "L" });
+  const c = plain(app.cleanProject(r)).actors[0];
+  assert.equal(c.strips, undefined);
+  assert.equal(c.dir, undefined);
+});
+
+test("pose reports the walking angle, uses 2D distance and exposes jump/action progress", () => {
+  const mv = (o) => ({ id: "m", type: "move", actor: "a", t: 0, d: 2, style: "walk", ...o });
+  const cast = { actor: "a", x: 50, y: 60, flip: false };
+  let p = app.pose({ steps: [mv({ x: 50, y: 90 })] }, cast, 1, 1, 0);
+  assert.equal(p.view, "front"); assert.equal(p.walk, true); assert.ok(p.phase > 0, "walking toward the camera animates the legs");
+  assert.equal(app.pose({ steps: [mv({ x: 50, y: 40 })] }, cast, 1, 1, 0).view, "back");
+  assert.equal(app.pose({ steps: [mv({ x: 90, y: 60 })] }, cast, 1, 1, 0).view, "side");
+  assert.equal(app.pose({ steps: [mv({ x: 90, y: 62 })] }, cast, 1, 1, 0).view, "side");
+  p = app.pose({ steps: [mv({ x: 90, y: 60, style: "hop" })] }, cast, 0.4, 1, 0);
+  assert.ok(p.jp >= 0 && p.jp <= 1, "hop progress");
+  p = app.pose({ steps: [{ id: "x", type: "act", actor: "a", t: 0, d: 2, act: "jump" }] }, cast, 0.5, 1, 0);
+  assert.ok(p.jp >= 0 && p.jp <= 1 && p.ap === 0.25);
+  p = app.pose({ steps: [] }, cast, 1, 1, 0);
+  assert.equal(p.view, null); assert.equal(p.jp, null);
+});
