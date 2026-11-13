@@ -26,9 +26,10 @@ function lessonScene(title,bg,cast,lines,extra){
   var t=.5,steps=[];lines.forEach(function(l){var d=Math.min(12,Math.max(2.6,Math.round((l[1].length*.075+.8)*10)/10));steps.push(Y(l[0],t,d,l[1],l[2]));t+=d+.3});
   (extra||[]).forEach(function(e){steps.push(e)});
   return{title:title,bg:bg,dur:Math.min(40,Math.ceil(t+.7)),cast:cast,steps:steps}}
-function lessonProject(){
+function lessonProject(hero){
   var S1='a1',F='a2',N='a3';
-  return{title:'فكّر قليلًا.. تربح كثيرًا',music:'calm',actors:[A(S1,'سامي','boy','#d62828','#f5c9a0','#7a4a2a','#2b59b8'),A(F,'يوسف','boy','#3a8ee0','#8a5a3c','#1b1b1b','#4a4f60'),A(N,'منى','girl','#f2b134','#f5c9a0','#3b2415')],scenes:[
+  var a0=hero&&typeof HERO!=='undefined'?{id:S1,name:'سامي',kind:'img',color:'#8d99ae',accent:'#e8eaf0',img:HERO.img,poses:HERO.poses}:A(S1,'سامي','boy','#d62828','#f5c9a0','#7a4a2a','#2b59b8');
+  return{title:'فكّر قليلًا.. تربح كثيرًا',music:'calm',actors:[a0,A(F,'يوسف','boy','#3a8ee0','#8a5a3c','#1b1b1b','#4a4f60'),A(N,'منى','girl','#f2b134','#f5c9a0','#3b2415')],scenes:[
   {kind:'card',title:'العنوان',mode:'title',t1:'فكّر قليلًا.. تربح كثيرًا',t2:'الوحدة الثانية: أخلاقي.. حياتي',bg:'day',dur:5},
   lessonScene('الجهاز السحري','day',[C(S1,30,84),C(N,72,84,true)],[[N,'تخيّل أن لديك جهازًا سحريًا للتحكم عن بُعد، يوقف نفسك في أي لحظة تشعر فيها أنك توشك أن تفعل شيئًا دون تفكير.','happy'],[S1,'جهاز سحري؟ وهل هو موجود فعلًا؟','surprised'],[N,'نعم! إنه موجود بالفعل داخل عقلك.','happy']]),
   lessonScene('الغضب','room',[C(S1,25,84),C(F,75,84,true),C(N,50,88)],[[N,'هل مرّ بك شعور كهذا؟ تريد أن تصرخ لأنك غاضب!','neutral'],[S1,'لماذا أخذت ساندويتشي؟!','angry'],[F,'أنا آسف، لم أقصد!','scared']],[M(S1,.5,2.5,38,84,'walk')]),
@@ -42,6 +43,7 @@ function lessonProject(){
   lessonScene('والآن أخبرنا','day',[C(S1,30,84),C(N,70,84,true)],[[N,'والآن أخبرنا: ماذا تفعل عندما تكون غاضبًا أو متسرعًا؟','happy'],[N,'هل سبق أن اتخذت قرارًا سريعًا ثم ندمت عليه لاحقًا؟','neutral'],[N,'وهل سبق أن اتخذت قرارًا بعد تفكير ثم تأكدت أنه كان صائبًا؟ صف لنا الموقف.','happy']]),
   {kind:'card',title:'المفردات',mode:'credits',t1:'المفردات الجديدة',t2:'توشك: تقترب · الأحيان: الأوقات\nنمنح: نعطي، وضدها نمنع\nينبض: يدق · لاحقًا: فيما بعد\nتفعيل: تشغيل، وضدها تعطيل',bg:'night',dur:9}]}}
 var TPL=[
+ {n:'درس بسامي الرئيسي (من صورك)',b:function(){return lessonProject(true)}},
  {n:'درس: فكّر قليلًا.. تربح كثيرًا',b:function(){return lessonProject()}},
  {n:'الروبوت والصديق',b:function(){return{title:'بولت وليلى',music:'adventure',actors:[A('a1','بولت','robot','#6c8ead','#ffd166'),A('a2','ليلى','boy','#e76f51','#f1c27d')],scenes:[
   {title:'اللقاء',bg:'room',dur:9,cast:[C('a1',80,84,true),C('a2',10,84)],steps:[Y('a2',.4,2.4,'من أنت؟','surprised'),M('a1',2.6,2,58,84,'slide','back'),Y('a1',4.8,3,'أنا بولت، روبوت جديد!','happy'),X(4.7,'ding')]},

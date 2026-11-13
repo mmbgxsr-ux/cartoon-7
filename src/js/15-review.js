@@ -84,7 +84,8 @@ function drawThumbs(){
     var i=+c.dataset.thumb,sg=SEG[i];if(!sg)return;var q=c.getContext('2d');q.setTransform(c.width/W,0,0,c.width/W,0,0);
     var s=P.scenes[i];drawScene(q,s,clamp(s.dur*.6,.4,s.dur-.4),sg.t0+s.dur*.6)});
   Array.prototype.forEach.call(document.querySelectorAll('[data-gal]'),function(c){var p0=GAL[+c.dataset.gal],q=c.getContext('2d');q.setTransform(1,0,0,1,0,0);q.clearRect(0,0,c.width,c.height);
-    drawActor(q,{id:'g'+c.dataset.gal,kind:p0.k,color:p0.c,accent:p0.a},{px:50,py:122,sc:.42,face:1,lift:0,rot:0,sx:1,sy:1,phase:0,walk:false,emo:'happy',talk:false,seed:1},0)});
+    if(p0.k==='hero'){if(typeof HERO!=='undefined'){var hi=new Image();hi.onload=function(){var h=124,w=hi.width*h/hi.height;q.drawImage(hi,50-w/2,126-h,w,h)};hi.src=HERO.img}return}
+    drawActor(q,{id:'g'+c.dataset.gal,kind:p0.k,color:p0.c,accent:p0.a,hair:p0.h,pants:p0.p},{px:50,py:122,sc:.42,face:1,lift:0,rot:0,sx:1,sy:1,phase:0,walk:false,emo:'happy',talk:false,seed:1},0)});
   Array.prototype.forEach.call(document.querySelectorAll('[data-model]'),function(c){drawModel(c,actorOf(c.dataset.model))});
   Array.prototype.forEach.call(document.querySelectorAll('[data-prev]'),function(c){
     var a=actorOf(c.dataset.prev),q=c.getContext('2d');q.setTransform(1,0,0,1,0,0);q.clearRect(0,0,c.width,c.height);
