@@ -374,3 +374,34 @@ test("pose reports the walking angle, uses 2D distance and exposes jump/action p
   p = app.pose({ steps: [] }, cast, 1, 1, 0);
   assert.equal(p.view, null); assert.equal(p.jp, null);
 });
+
+test("boy/girl keep valid hair and pants colours only", () => {
+  const o = base();
+  o.actors = [
+    { id: "a1", name: "B", kind: "boy", color: "#aabbcc", accent: "#ffffff", hair: "#112233", pants: "#445566" },
+    { id: "a2", name: "G", kind: "girl", color: "#aabbcc", accent: "#ffffff", hair: "red", pants: "#445566" },
+    { id: "a3", name: "C", kind: "cat", color: "#aabbcc", accent: "#ffffff", hair: "#112233" },
+  ];
+  o.scenes[0].cast = [{ actor: "a1", x: 10, y: 80 }];
+  const r = plain(app.cleanProject(o));
+  assert.equal(r.actors[0].hair, "#112233");
+  assert.equal(r.actors[0].pants, "#445566");
+  assert.equal(r.actors[1].hair, undefined);
+  assert.equal(r.actors[1].pants, undefined);
+  assert.equal(r.actors[2].hair, undefined);
+});
+
+test("lesson template is a valid project with dialogue", () => {
+  const o = plain(app.cleanProject(plain(app.lessonProject())));
+  assert.ok(o);
+  assert.equal(o.actors.length, 3);
+  assert.ok(o.scenes.length >= 10);
+  assert.ok(o.scenes.some((s) => s.steps.some((x) => x.type === "say" && x.text)));
+  assert.equal(o.actors[0].hair, "#7a4a2a");
+});
+
+test("voice file attach accepts audio data urls in projects", () => {
+  const o = base();
+  o.scenes[0].steps = [{ id: "x1", type: "say", actor: "a1", t: 0, d: 2, text: "hi", aud: "data:audio/mpeg;base64,AAAA" }];
+  assert.equal(plain(app.cleanProject(o)).scenes[0].steps[0].aud, "data:audio/mpeg;base64,AAAA");
+});

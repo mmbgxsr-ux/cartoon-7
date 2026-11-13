@@ -17,6 +17,7 @@ document.addEventListener('click',function(e){
   else if(a==='prev-sfx'){var ps=s.steps.filter(function(x){return x.id===el.dataset.id})[0];if(ps){auInit();playSfx(ps.sfx)}}
   else if(a==='use-tpl'){var ts=$('#tplSel');if(ts)useTemplate(+ts.value)}
   else if(a==='rec-voice')startVoice(el.dataset.id);
+  else if(a==='file-voice')pickVoiceFile(el.dataset.id);
   else if(a==='play-voice'){var pf=findStep(el.dataset.id);if(pf&&pf.st.aud){auInit();decodeVoice(pf.st.aud).then(function(v){if(v)playVoice(pf.st.aud)})}}
   else if(a==='del-voice'){var df=findStep(el.dataset.id);if(df){delete df.st.aud;refresh();renderPanel()}}
   else if(a==='pose-add')addPose(el.dataset.id,el.dataset.pose);
@@ -74,7 +75,7 @@ $('#panel').addEventListener('input',function(e){
   else if(m==='cast'){var c=s.cast.filter(function(x){return x.actor===el.dataset.id})[0];if(c)c[k]=v}
   else if(m==='ui')S[k]=v;
   else if(m==='stripui'){var nn=$('#'+el.dataset.p+'-n');if(nn)nn.value=STRIPN[v]||8;return}
-  else if(m==='actor'){var ac=actorOf(el.dataset.id);ac[k]=v;if(k==='kind'||k==='color'||k==='accent'||k==='body'||k==='zoom'||k==='fx'||k==='fy')drawThumbs()}
+  else if(m==='actor'){var ac=actorOf(el.dataset.id);ac[k]=v;if(k==='kind'||k==='color'||k==='accent'||k==='body'||k==='zoom'||k==='fx'||k==='fy'||k==='hair'||k==='pants')drawThumbs()}
   else if(m==='step'){var st=s.steps.filter(function(x){return x.id===el.dataset.id})[0];if(st)st[k]=v}
   recalc();drawNow();updateUI();renderStrip();save();
 });

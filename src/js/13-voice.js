@@ -44,8 +44,12 @@ function startVoice(id){
   }).catch(function(){toast('الميكروفون غير متاح. اسمح بالوصول إليه، أو افتح الملف مباشرة في المتصفح')});
 }
 function stopVoice(){var m=S.mic;if(!m)return;try{if(m.rec.state!=='inactive')m.rec.stop()}catch(e){}}
+function pickVoiceFile(id){
+  var f=document.createElement('input');f.type='file';f.accept='audio/*,.mp3,.m4a,.wav,.ogg,.webm,.aac';
+  f.onchange=function(){var fl=f.files&&f.files[0];if(!fl)return;if(fl.size>1700000){toast('الملف كبير ('+(fl.size/1048576).toFixed(1)+' ميجا). الحد الأقصى 1.7 ميجا للجملة، قصّه أو اختر ملفًا أصغر');return}
+    var fr=new FileReader();fr.onload=function(){var u=String(fr.result);if(!/^data:audio\//.test(u)){var t=fl.type&&/^audio\//.test(fl.type)?fl.type:'audio/mpeg';u='data:'+t+';base64,'+u.slice(u.indexOf('base64,')+7)}attachVoice(id,u)};fr.onerror=function(){toast('تعذر قراءة الملف')};fr.readAsDataURL(fl)};f.click()}
 function voiceRow(st){
-  var rec=S.mic&&S.mic.id===st.id,h='<div class="row"><button class="btn sm'+(rec?' pri':'')+'" data-a="rec-voice" data-id="'+st.id+'">'+(rec?'■ إيقاف التسجيل':'🎙 سجّل صوتي')+'</button>';
+  var rec=S.mic&&S.mic.id===st.id,h='<div class="row"><button class="btn sm'+(rec?' pri':'')+'" data-a="rec-voice" data-id="'+st.id+'">'+(rec?'■ إيقاف التسجيل':'🎙 سجّل صوتي')+'</button><button class="btn sm" data-a="file-voice" data-id="'+st.id+'">📁 صوت من ملف</button>';
   if(st.aud)h+='<button class="btn sm" data-a="play-voice" data-id="'+st.id+'">▶ استمع</button><button class="btn sm dng" data-a="del-voice" data-id="'+st.id+'">حذف التسجيل</button>';
   h+='</div>';if(st.aud)h+='<p class="hint">صوتك مسجّل، وفم الشخصية يتبعه. مدة الجملة صارت بطول التسجيل.</p>';return h;
 }

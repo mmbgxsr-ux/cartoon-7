@@ -1,6 +1,6 @@
 'use strict';
 /* ---------- gallery & photos ---------- */
-var GAL=[{n:'ميمو',k:'cat',c:'#f4a259',a:'#ffe6c7'},{n:'كريم',k:'boy',c:'#3a86ff',a:'#f1c27d'},{n:'ليلى',k:'girl',c:'#e76f51',a:'#f1c27d'},{n:'لولو',k:'rabbit',c:'#efe9f7',a:'#ffd6e0'},
+var GAL=[{n:'سامي (الدرس)',k:'boy',c:'#d62828',a:'#f5c9a0',h:'#7a4a2a',p:'#2b59b8'},{n:'صديق سامي',k:'boy',c:'#3a8ee0',a:'#8a5a3c',h:'#1b1b1b',p:'#4a4f60'},{n:'منى (الراوية)',k:'girl',c:'#f2b134',a:'#f5c9a0',h:'#3b2415'},{n:'ميمو',k:'cat',c:'#f4a259',a:'#ffe6c7'},{n:'كريم',k:'boy',c:'#3a86ff',a:'#f1c27d'},{n:'ليلى',k:'girl',c:'#e76f51',a:'#f1c27d'},{n:'لولو',k:'rabbit',c:'#efe9f7',a:'#ffd6e0'},
   {n:'بولت',k:'robot',c:'#6c8ead',a:'#ffd166'},{n:'سمسم',k:'cat',c:'#8d99ae',a:'#e8eaf0'},{n:'نور',k:'girl',c:'#8338ec',a:'#e0b184'},{n:'جزرة',k:'rabbit',c:'#f4a259',a:'#fff1d6'}];
 var IMGC={};
 function getImgKey(key,src){var c=IMGC[key];if(!c||c.src!==src){var im=new Image();c=IMGC[key]={src:src,im:im,ok:false};im.onload=function(){c.ok=true;drawNow();drawThumbs()};im.src=src}return c.ok?c.im:null}
@@ -240,7 +240,7 @@ function addToScene(id){var sc=cur();if(!sc.cast.some(function(c){return c.actor
 function addFromGallery(i){
   var p0=GAL[i];if(!p0)return;if(P.actors.length>=6){toast('الحد الأقصى 6 شخصيات، احذف شخصية أولًا');return}
   var nm=p0.n;while(P.actors.some(function(a){return a.name===nm}))nm=p0.n+' '+(Math.floor(Math.random()*90)+10);
-  var id=uid();P.actors.push({id:id,name:nm,kind:p0.k,color:p0.c,accent:p0.a});addToScene(id);refresh();renderPanel();toast('أضفت «'+nm+'» إلى المشروع والمشهد')}
+  var id=uid();var na={id:id,name:nm,kind:p0.k,color:p0.c,accent:p0.a};if(p0.h)na.hair=p0.h;if(p0.p)na.pants=p0.p;P.actors.push(na);addToScene(id);refresh();renderPanel();toast('أضفت «'+nm+'» إلى المشروع والمشهد')}
 function addPhotoActor(){
   if(P.actors.length>=6){toast('الحد الأقصى 6 شخصيات، احذف شخصية أولًا');return}
   var rm=$('#rmbg')?$('#rmbg').checked:true;
@@ -292,6 +292,7 @@ function charsHTML(){
      +(a.kind==='img'?poseHTML(a):a.kind==='face'?faceHTML(a):'<select data-m="actor" data-id="'+a.id+'" data-k="kind" aria-label="النوع">'+opts(KINDS,a.kind)+'</select>')
      +(a.kind==='img'?'':'<div class="row"><label class="l">'+(a.kind==='face'?'لون الملابس':'اللون')+'</label><input type="color" data-m="actor" data-id="'+a.id+'" data-k="color" value="'+a.color+'">'
      +'<label class="l">'+(a.kind==='face'?'لون اليدين':'اللون الثانوي')+'</label><input type="color" data-m="actor" data-id="'+a.id+'" data-k="accent" value="'+a.accent+'"></div>')
+     +((a.kind==='boy'||a.kind==='girl')?'<div class="row"><label class="l">لون الشعر</label><input type="color" data-m="actor" data-id="'+a.id+'" data-k="hair" value="'+(a.hair||'#6b4226')+'">'+(a.kind==='boy'?'<label class="l">لون البنطلون</label><input type="color" data-m="actor" data-id="'+a.id+'" data-k="pants" value="'+(a.pants||'#2f3b5c')+'">':'')+'</div>':'')
      +'<div><button class="btn sm dng" data-a="del-actor" data-id="'+a.id+'">حذف</button></div></div></div>';
   });
   return h+galleryHTML()+modelsHTML();

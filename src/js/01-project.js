@@ -67,7 +67,7 @@ function cleanProject(o){
   var hex=function(c,d){return /^#[0-9a-f]{6}$/i.test(c||'')?c:d},ids=Object.create(null),idmap=Object.create(null);
   var imgOk=function(u,max){return typeof u==='string'&&u.length<max&&/^data:image\/(png|webp|jpeg);base64,[A-Za-z0-9+\/=]+$/.test(u)};
   var actors=o.actors.slice(0,6).map(function(a){var id=cleanId(a.id);while(ids[id])id=uid();ids[id]=1;idmap[String(a.id)]=id;var isImg=a.kind==='img'&&imgOk(a.img,1200000),isFace=a.kind==='face'&&imgOk(a.img,1200000);
-    var r={id:id,name:String(a.name||'شخصية').slice(0,30),kind:isImg?'img':isFace?'face':own(KINDS,a.kind)?a.kind:'cat',color:hex(a.color,'#f4a259'),accent:hex(a.accent,'#ffe6c7')};if(isFace){r.img=a.img;r.body=a.body==='girl'?'girl':'boy';r.zoom=numOr(a.zoom,1,1,3);r.fx=numOr(a.fx,0,-1,1);r.fy=numOr(a.fy,0,-1,1)}
+    var r={id:id,name:String(a.name||'شخصية').slice(0,30),kind:isImg?'img':isFace?'face':own(KINDS,a.kind)?a.kind:'cat',color:hex(a.color,'#f4a259'),accent:hex(a.accent,'#ffe6c7')};if(!isImg&&!isFace&&(r.kind==='boy'||r.kind==='girl')){if(/^#[0-9a-f]{6}$/i.test(a.hair||''))r.hair=a.hair;if(r.kind==='boy'&&/^#[0-9a-f]{6}$/i.test(a.pants||''))r.pants=a.pants}if(isFace){r.img=a.img;r.body=a.body==='girl'?'girl':'boy';r.zoom=numOr(a.zoom,1,1,3);r.fx=numOr(a.fx,0,-1,1);r.fy=numOr(a.fy,0,-1,1)}
     if(isImg){r.img=a.img;if(a.poses&&typeof a.poses==='object'){var pz={};Object.keys(POSEN).forEach(function(k){if(imgOk(a.poses[k],1200000))pz[k]=a.poses[k]});if(Object.keys(pz).length)r.poses=pz}
       if(a.dir==='L')r.dir='L';
       if(a.strips&&typeof a.strips==='object'){var sz={},cnt=0;Object.keys(a.strips).forEach(function(k){var s=a.strips[k];
