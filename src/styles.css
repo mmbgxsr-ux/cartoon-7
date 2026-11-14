@@ -67,6 +67,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
 .badge.say{background:var(--accent);color:var(--on-accent)}
 .hint{color:var(--muted);font-size:13px;margin:0}
 .badge.sfx{background:#b45309;color:#fff}
+.badge.fx{background:#c2185b;color:#fff}
 .badge.act{background:#7c3aed;color:#fff}
 #recbadge{position:absolute;top:10px;inset-inline-start:10px;display:flex;gap:8px;align-items:center;background:rgba(0,0,0,.7);color:#fff;padding:4px 6px 4px 12px;border-radius:99px;font-size:13px}
 .tabs button{font-size:14px}
