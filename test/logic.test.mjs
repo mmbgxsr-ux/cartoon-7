@@ -405,3 +405,231 @@ test("voice file attach accepts audio data urls in projects", () => {
   o.scenes[0].steps = [{ id: "x1", type: "say", actor: "a1", t: 0, d: 2, text: "hi", aud: "data:audio/mpeg;base64,AAAA" }];
   assert.equal(plain(app.cleanProject(o)).scenes[0].steps[0].aud, "data:audio/mpeg;base64,AAAA");
 });
+
+test("walk stride matches ground speed and ends on a half-cycle", () => {
+  const cast = { actor: "a", x: 10, y: 80, flip: false };
+  for (const dx of [20, 35, 60, 80]) {
+    const st = { steps: [{ id: "m", type: "move", actor: "a", t: 0, d: 4, style: "walk", x: 10 + dx, y: 80 }] };
+    const end = app.pose(st, cast, 3.999, 1, 0);
+    const k = end.phase / Math.PI;
+    assert.ok(Math.abs(k - Math.round(k)) < 0.05, `dx=${dx} ends mid-step (phase/pi=${k.toFixed(2)})`);
+    // feet speed (px of stride per px of travel) stays near natural: one cycle covers 0.8 body heights
+    const cyc = end.phase / (2 * Math.PI), px = dx * 1280 / 100, body = 270 * end.sc;
+    const ratio = (px / cyc) / body;
+    assert.ok(ratio > 0.55 && ratio < 1.2, `dx=${dx} foot sliding ratio ${ratio.toFixed(2)}`);
+  }
+});
+
+test("speech nod: kick fades after a line starts and mouth amplitude is 0..1", () => {
+  const cast = { actor: "a", x: 50, y: 80, flip: false };
+  const st = { steps: [{ id: "s", type: "say", actor: "a", t: 1, d: 2, text: "مرحبا بكم", emo: "happy" }] };
+  assert.equal(app.pose(st, cast, 0.5, 0, 0).kick, 0);
+  assert.ok(Math.abs(app.pose(st, cast, 1.15, 0, 0).kick) > 0.01);
+  assert.ok(Math.abs(app.pose(st, cast, 1.8, 0, 0).kick) < 0.001);
+  for (const t of [1.1, 1.5, 2, 2.8]) { const a = app.pose(st, cast, t, 0, 0).amp; assert.ok(a >= 0 && a <= 1); }
+});
+
+test("lesson characters ship talk + idle strips (mouth frames, then gesture frames)", () => {
+  for (const k of ["sami", "friend", "mona"]) {
+    const st = app.ASSETS[k].strips, s = st["talk:front"], id = st["idle:front"];
+    assert.ok(s && id, k + " has talk and idle strips");
+    assert.match(s.img, /^data:image\/webp;base64,/);
+    assert.equal(id.n, 1);
+    assert.ok(s.m >= 4 && s.m < s.n, "mouth frames come first");
+    assert.ok(s.g && s.g.point >= s.m && s.g.point < s.n, "point gesture frame after the mouth frames");
+    assert.ok(s.cw >= 8 && s.ch >= 8 && s.h >= 8 && s.h <= s.ch);
+    assert.equal(id.cw, s.cw, "idle and talk share the same frame size/anchor");
+    assert.ok(st["walk:side"], k + " keeps its walk strip");
+    const a = { strips: st };
+    const pk = (open) => app.stripPick(a, { talk: true, vis: [open, 8], seed: 0, phase: 0 }, 0);
+    assert.equal(pk(0).key, "talk:front");
+    assert.equal(pk(0).i, 0, "closed mouth -> first frame");
+    assert.equal(pk(14).i, s.m - 1, "wide open -> last MOUTH frame (never a gesture frame)");
+    assert.equal(app.stripPick(a, { phase: 0 }, 0).key, "idle:front", "not talking: idle strip");
+  }
+});
+
+test("talk strips survive cleanProject", () => {
+  const s = app.ASSETS.sami.strips["talk:front"];
+  const o = base();
+  o.actors = [{ id: "a1", name: "A", kind: "img", img: app.ASSETS.sami.img, strips: { "talk:front": s } }];
+  const r = app.cleanProject(o);
+  assert.ok(r && r.actors[0].strips && r.actors[0].strips["talk:front"], "kept");
+  assert.equal(r.actors[0].strips["talk:front"].n, s.n);
+  assert.equal(r.actors[0].strips["talk:front"].m, s.m);
+  assert.deepEqual(plain(r.actors[0].strips["talk:front"].g), plain(s.g));
+});
+
+test("talk strip: smoothed mouth keeps the hand out during short pauses", () => {
+  const a = { strips: { "talk:front": { img: PNG, n: 5, cw: 10, ch: 10, h: 10 } } };
+  const pk = (tOpen, tAny) => app.stripPick(a, { talk: true, vis: [1, 10], tOpen, tAny, seed: 0, phase: 0 }, 0).i;
+  assert.equal(pk(0, false), 0, "sustained closed mouth -> frame 0");
+  assert.equal(pk(0.05, true), 1, "short pause inside speech -> smallest open frame, not frame 0");
+  assert.equal(pk(1, true), 4, "wide open -> last frame");
+  assert.ok(pk(0.5, true) >= 1 && pk(0.5, true) <= 4);
+});
+
+test("talk strip: neighbouring frames are blended instead of jumping", () => {
+  const a = { strips: { "talk:front": { img: PNG, n: 6, cw: 10, ch: 10, h: 10, m: 4, g: { point: 4, chest: 5 } } } };
+  const pk = (o, extra = {}) => app.stripPick(a, { talk: true, vis: [1, 10], tOpen: o, tAny: true, tN: 6, seed: 0, phase: 0, ...extra }, 0);
+  const s0 = pk(0.0), s1 = pk(0.25);
+  assert.equal(s0.i, 1); assert.ok(s0.mx < 0.05);
+  assert.ok(s1.j != null && s1.mx > 0 && s1.mx <= 0.5, "mid-way: second frame mixed in");
+  assert.ok(pk(1).i === 3 && !pk(1).mx, "fully open stays on the last mouth frame");
+  assert.equal(pk(0.5, { gest: "point", gw: 1 }).i, 4, "gesture at full weight shows the gesture frame");
+  assert.equal(pk(0.5, { gest: "point", gw: 0.2 }).j, 4, "gesture fading in is mixed over the mouth frame");
+  assert.equal(pk(0.5, { gest: "chest", gw: 1, tN: 0, tAny: false }).i, 0, "no gesture during a pause");
+});
+
+test("gestFor picks a gesture from the sentence text", () => {
+  assert.equal(app.gestFor("أنا أعرف الإجابة! أنا أعرفها!").k, "chest");
+  assert.equal(app.gestFor("لماذا أخذت ساندويتشي؟!").k, "point");
+  assert.equal(app.gestFor("هذا كلام عادي جدًا بدون أي تعبير"), null);
+  assert.equal(app.gestFor("نعم!"), null, "too short");
+  const g = app.gestFor("وتريد أن تجيب بسرعة، لكن السؤال لم ينتهِ بعد");
+  assert.ok(g && g.u >= 0.12 && g.u <= 0.75);
+});
+
+const lessonClean = (hero) => app.cleanProject(JSON.parse(JSON.stringify(app.lessonProject(hero))));
+const gStub = () => new Proxy({}, {
+  get: (t, k) => (k in t ? t[k] : k === "measureText" ? () => ({ width: 120 }) : /^create/.test(String(k)) ? () => ({ addColorStop() {} }) : () => {}),
+  set: (t, k, v) => { t[k] = v; return true; },
+});
+
+test("lesson: every speaker is in the scene, and the three characters share the dialogue", () => {
+  for (const hero of [true, false]) {
+    const p = lessonClean(hero), cnt = {};
+    for (const sc of p.scenes) {
+      const ids = new Set(sc.cast.map((c) => c.actor));
+      for (const s of sc.steps) {
+        assert.ok(s.t + s.d <= sc.dur + 0.01, sc.title + ": step ends inside the scene");
+        if (s.type === "say") { assert.ok(ids.has(s.actor), sc.title + ": speaker is in the cast"); cnt[s.actor] = (cnt[s.actor] || 0) + 1; }
+      }
+    }
+    const v = Object.values(cnt);
+    assert.equal(v.length, 3);
+    assert.ok(Math.min(...v) >= 8 && Math.max(...v) - Math.min(...v) <= 4, "balanced: " + JSON.stringify(cnt));
+  }
+});
+
+test("lesson: red alert, heartbeat and breathing overlays, plus a summary list card", () => {
+  const p = lessonClean(true);
+  const fx = p.scenes.flatMap((s) => s.steps.filter((x) => x.type === "fx").map((x) => x.fx)).sort();
+  assert.deepEqual([...new Set(fx)], ["alert", "badge", "breath", "pulse"]);
+  const card = p.scenes.find((s) => s.kind === "card" && s.mode === "list");
+  assert.ok(card && card.t2.split("\n").length === 3, "summary card with three steps");
+  const iCard = p.scenes.indexOf(card), iVocab = p.scenes.findIndex((s) => s.mode === "credits");
+  assert.ok(iCard < iVocab, "summary comes before the vocabulary credits");
+  app.P = p; app.recalc();
+  const k = {}; app.EV.forEach((e) => { if (e.k === "sfx") k[e.v] = (k[e.v] || 0) + 1; });
+  assert.ok(k.alarm >= 4 && k.beat >= 4 && k.breathin === 2 && k.breathout === 2, JSON.stringify(k));
+});
+
+test("lesson: opens with the impulsive moment, step badges 1-2-3 appear, and the scene is replayed with the device", () => {
+  const p = lessonClean(true);
+  const first = p.scenes[1];
+  assert.equal(first.title, "لحظة اندفاع", "cold open right after the title card");
+  assert.ok(first.steps.some((x) => x.type === "say" && x.emo === "angry"), "cold open starts with anger");
+  const badges = p.scenes.flatMap((s) => s.steps.filter((x) => x.type === "fx" && x.fx === "badge").map((x) => x.label));
+  assert.ok(badges.length >= 6 && badges.every((l) => l && l.length <= 40), "badge labels kept");
+  const stepBadges = badges.filter((l) => /^[١٢٣] ·/.test(l));
+  assert.deepEqual(stepBadges.filter((l, i) => i === 0 || l !== stepBadges[i - 1]).slice(0, 3).map((l) => l.charAt(0)), ["١", "٢", "٣"]);
+  assert.ok(badges.some((l) => l.includes("=")), "vocabulary labels appear while the word is spoken");
+  const iCard = p.scenes.findIndex((s) => s.title === "نعيد المشهد" && s.kind === "card");
+  assert.ok(iCard > 0 && p.scenes[iCard + 1].bg === first.bg && p.scenes[iCard + 1].title === "القرار الصائب", "replay happens in the same place as the cold open");
+});
+
+test("lesson direction: varied camera and transitions, character gestures and moves, a concrete helpful-impulse example", () => {
+  const p = lessonClean(true), sc = p.scenes.filter((s) => s.kind !== "card");
+  assert.ok(sc.filter((s) => s.cam && s.cam !== "fixed").length >= 8, "camera moves");
+  assert.ok(new Set(p.scenes.map((s) => s.trans)).size >= 4, "varied transitions");
+  assert.ok(sc.filter((s) => s.steps.some((x) => x.type === "act")).length >= 3, "gestures");
+  assert.ok(sc.filter((s) => s.steps.some((x) => x.type === "move")).length >= 5, "characters move");
+  const useful = p.scenes.find((s) => s.title === "الاندفاع المفيد");
+  assert.ok(useful.steps.some((x) => x.type === "move" && x.style === "run"), "a rescue run in the helpful-impulse scene");
+  assert.ok(useful.steps.some((x) => x.type === "say" && /دراجة/.test(x.text)), "bicycle example");
+  const cold = p.scenes[1];
+  assert.ok(cold.steps.some((x) => x.type === "move" && x.actor === cold.cast[2].actor), "Mona walks in during the cold open");
+});
+
+test("camera: never reveals the background edge, deterministic, follow mode pans toward the speaker", () => {
+  const p = lessonClean(true);
+  app.P = p; app.recalc();
+  for (const sc of p.scenes) {
+    for (let lt = 0; lt <= sc.dur; lt += 0.25) {
+      const c = app.camState(sc, lt), mx = 640 * (c.s - 1) / c.s + 1e-6, my = 360 * (c.s - 1) / c.s + 1e-6;
+      assert.ok(c.s >= 1 && c.s <= 1.2, sc.title + " zoom range");
+      assert.ok(Math.abs(c.tx) <= mx && Math.abs(c.ty) <= my, sc.title + " stays inside the background at " + lt);
+      assert.deepEqual(plain(app.camState(sc, lt)), plain(c), "pure function of time");
+    }
+  }
+  const cold = p.scenes[1];
+  assert.equal(cold.cam, "follow");
+  const a = app.camState(cold, 0.1);
+  assert.equal(a.s, 1, "starts on a wide establishing shot");
+  const pt = app.camPt(cold, 5, 640, 360);
+  assert.ok(Math.abs(pt.x - 640) < 70 && Math.abs(pt.y - 360) < 40, "screen point stays near the scene point");
+});
+
+test("bubbles and badges draw without errors in every scene, in screen space", () => {
+  const p = lessonClean(true); app.P = p; app.recalc();
+  const g = gStub();
+  for (const sc of p.scenes) for (let lt = 0; lt < sc.dur; lt += 0.5) app.drawScene(g, sc, lt, lt);
+  app.bubble(g, "نص تجريبي طويل ".repeat(12), 640, 300, 0.5, { emo: "angry", name: "سامي", col: "#d62828", u: 0.5, d: 3, noRight: 1000, vocab: ["نص"] });
+  assert.equal(app.vocabKey("«توشك»،"), "توشك");
+});
+
+test("lesson: every vocabulary label is shown while inside its line window and ends inside the scene", () => {
+  const p = lessonClean(true);
+  for (const sc of p.scenes) for (const x of sc.steps) if (x.type === "fx" && x.fx === "badge") assert.ok(x.t + x.d <= sc.dur + 0.01, sc.title + " badge ends inside scene");
+  const voc = p.scenes.flatMap((s) => s.steps.filter((x) => x.fx === "badge" && x.label.includes("=")));
+  assert.ok(voc.length >= 5 && voc.every((v) => v.d <= 2.9 + 1e-9), "vocabulary plates last at most ~2.8 s");
+});
+
+test("badge fx keeps its label (trimmed to 40 chars) and drops it for other overlays", () => {
+  const o = base();
+  o.scenes[0].steps = [
+    { id: "b1", type: "fx", fx: "badge", t: 0, d: 2, label: "x".repeat(60) },
+    { id: "b2", type: "fx", fx: "alert", t: 0, d: 2, label: "no" },
+  ];
+  const st = plain(app.cleanProject(o)).scenes[0].steps;
+  assert.equal(st[0].label.length, 40);
+  assert.equal(st[1].label, undefined);
+});
+
+test("fx steps survive cleanProject and unknown overlays fall back", () => {
+  const o = base();
+  o.scenes[0].steps = [{ id: "f1", type: "fx", fx: "pulse", t: 1, d: 2 }, { id: "f2", type: "fx", fx: "nonsense", t: 0, d: 1 }];
+  const r = app.cleanProject(o);
+  assert.equal(r.scenes[0].steps[0].fx, "pulse");
+  assert.equal(r.scenes[0].steps[0].actor, undefined);
+  assert.equal(r.scenes[0].steps[1].fx, "alert");
+  o.scenes.push({ id: "c", kind: "card", mode: "list", t1: "x", t2: "a\nb", bg: "night", dur: 6 });
+  assert.equal(app.cleanProject(o).scenes[1].mode, "list");
+});
+
+test("overlays and the list card draw without errors at any time", () => {
+  for (const fx of ["breath", "alert", "pulse"]) for (const u of [0, 0.1, 1.3, 2.7, 4.9, 5.4]) app.drawOvl(gStub(), { fx, t: 0, d: 5.5 }, u);
+  for (const lt of [0, 0.5, 1.2, 3, 8.5]) app.drawCardText(gStub(), { mode: "list", t1: "عنوان", t2: "أ\nب\nج", bg: "night", dur: 9 }, lt);
+  for (const k of ["beat", "alarm", "breathin", "breathout"]) app.playSfx(k);
+});
+
+
+test("breathing is a real guided cycle: inhale, short hold, exhale, with sound events matching the phases", () => {
+  const b = (u) => app.breathAt(u, 8);
+  assert.equal(b(0.1).ph, 0); assert.equal(b(3.8).ph, 1); assert.equal(b(5).ph, 2);
+  assert.ok(Math.abs(app.breathCyc(8) - 8) < 1e-9 && app.breathCyc(20) <= 10);
+  const p = lessonClean(true); app.P = p; app.recalc();
+  const ins = app.EV.filter((e) => e.v === "breathin"), outs = app.EV.filter((e) => e.v === "breathout");
+  assert.ok(ins.length === 2 && outs.length === 2);
+  ins.forEach((e, i) => { assert.ok(e.d > 2.5, "inhale lasts seconds"); assert.ok(outs[i].T > e.T + e.d, "exhale starts after the inhale ends"); });
+  const al = app.EV.filter((e) => e.v === "alerthit"), calm = app.EV.filter((e) => e.v === "calm");
+  assert.ok(al.length >= 2 && calm.length === al.length, "each alert opens with a hit and ends with a calm chime");
+});
+
+test("music ducks while a breathing, alert or pulse effect is active", () => {
+  const p = lessonClean(true); app.P = p; app.recalc();
+  let ducked = 0, free = 0;
+  for (let T = 0; T < app.TOTAL; T += 0.25) (app.fxDuck(T) < 1 ? ducked++ : free++);
+  assert.ok(ducked > 8 && free > 8);
+});
