@@ -62,7 +62,7 @@ document.addEventListener('click',function(e){
   else if(a==='del-cast'){var id2=el.dataset.id;s.cast=s.cast.filter(function(c){return c.actor!==id2});s.steps=s.steps.filter(function(x){return x.actor!==id2});refresh();renderPanel()}
   else if(a==='add-step'){if(!s.cast.length){toast('أضف شخصية إلى المشهد أولًا');return}var end=0;s.steps.forEach(function(x){end=Math.max(end,x.t+x.d)});
     var t0=+Math.min(end,Math.max(0,s.dur-1)).toFixed(1),ac=s.cast[0].actor;
-    var v=el.dataset.v;s.steps.push(v==='act'?{id:uid(),type:'act',actor:ac,t:t0,d:2,act:'wave'}:v==='move'?{id:uid(),type:'move',actor:ac,t:t0,d:2.5,x:50,y:s.cast[0].y,style:'walk'}:v==='sfx'?{id:uid(),type:'sfx',t:t0,d:.5,sfx:'pop'}:{id:uid(),type:'say',actor:ac,t:t0,d:2.4,text:'مرحبًا!',emo:'happy'});
+    var v=el.dataset.v;s.steps.push(v==='act'?{id:uid(),type:'act',actor:ac,t:t0,d:2,act:'wave'}:v==='move'?{id:uid(),type:'move',actor:ac,t:t0,d:2.5,x:50,y:s.cast[0].y,style:'walk'}:v==='sfx'?{id:uid(),type:'sfx',t:t0,d:.5,sfx:'pop'}:v==='fx'?{id:uid(),type:'fx',t:t0,d:3,fx:'alert'}:{id:uid(),type:'say',actor:ac,t:t0,d:2.4,text:'مرحبًا!',emo:'happy'});
     s.dur=Math.max(s.dur,Math.ceil(t0+3));refresh();renderPanel()}
   else if(a==='del-step'){s.steps=s.steps.filter(function(x){return x.id!==el.dataset.id});refresh();renderPanel()}
 });
@@ -80,7 +80,7 @@ $('#panel').addEventListener('input',function(e){
   recalc();drawNow();updateUI();renderStrip();save();
 });
 $('#panel').addEventListener('change',function(e){var m=e.target.dataset.m,k=e.target.dataset.k;
-  if(m==='step'&&(k==='t'||k==='curve'||k==='style'))renderPanel();else if(m==='scn'||m==='proj'||m==='actor')drawThumbs()});
+  if(m==='step'&&(k==='t'||k==='curve'||k==='style'||k==='fx'))renderPanel();else if(m==='scn'||m==='proj'||m==='actor')drawThumbs()});
 $('#scrub').addEventListener('input',function(e){if(S.rec)return;S.playing=false;stopVoices();S.T=parseFloat(e.target.value);var sg=segAt(S.T);if(sg.i!==S.si){S.si=sg.i;renderStrip();if(S.tab==='prod'||S.tab==='rev')renderPanel()}drawNow();updateUI()});
 document.addEventListener('keydown',function(e){if(e.code==='Space'&&!/INPUT|SELECT|TEXTAREA|BUTTON/.test(e.target.tagName)&&!(e.target.getAttribute&&e.target.getAttribute('role')==='button')){e.preventDefault();play(false)}});
 document.addEventListener('keydown',function(e){var t=e.target;if((e.key==='Enter'||e.key===' ')&&t&&t.getAttribute&&t.getAttribute('role')==='button'&&t.tagName!=='BUTTON'){e.preventDefault();t.click()}});

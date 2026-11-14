@@ -24,7 +24,7 @@ function xsheetHTML(){
         if(x.t<r+1&&x.t+x.d>r){var start=Math.floor(x.t)===r;cls=x.type==='say'?'sy':'mv';
           cell=start?(x.type==='act'?'<b>'+ACTN[x.act]+'</b>':x.type==='move'?'<b>'+STY[x.style]+'</b> ← '+Math.round(x.x)+'٪':'<b>'+(x.aud?'🎙 ':'')+'«'+esc(x.text||'')+'»</b>'):'│'}});
       h+='<td class="'+cls+'">'+cell+'</td>'});
-    var sf='';s.steps.forEach(function(x){if(x.type==='sfx'&&Math.floor(x.t)===r)sf+=(sf?'، ':'')+(SFXN[x.sfx]||x.sfx)});
+    var sf='';s.steps.forEach(function(x){if((x.type==='sfx'||x.type==='fx')&&Math.floor(x.t)===r)sf+=(sf?'، ':'')+(x.type==='fx'?'مؤثر: '+(OVN[x.fx]||x.fx):(SFXN[x.sfx]||x.sfx))});
     h+='<td class="'+(sf?'sf':'')+'">'+sf+'</td></tr>'}
   return h+'</tbody></table></div><p class="hint">كل صف ثانية واحدة. الأزرق للحركة، والبرتقالي للحوار، والبني للمؤثرات الصوتية. غيّر المشهد من الشريط تحت العرض.</p>';
 }
@@ -39,7 +39,7 @@ function qcCheck(){
     else if(!say.length)add('i',i,'المشهد '+nm+' بلا حوار، تأكد أن القصة تُفهم بالحركة وحدها.');
     s.steps.forEach(function(x){
       if(x.t+x.d>s.dur+.01)add('w',i,'في '+nm+': خطوة تنتهي بعد نهاية المشهد ('+(x.t+x.d).toFixed(1)+' ث من '+s.dur+').');
-      if(x.type!=='sfx'&&!s.cast.some(function(c){return c.actor===x.actor}))add('e',i,'في '+nm+': خطوة لشخصية غير موجودة في المشهد.');
+      if(x.type!=='sfx'&&x.type!=='fx'&&!s.cast.some(function(c){return c.actor===x.actor}))add('e',i,'في '+nm+': خطوة لشخصية غير موجودة في المشهد.');
       if(x.type==='say'){if(!(x.text||'').trim())add('e',i,'في '+nm+': جملة حوار فارغة.');
         else if(!x.aud&&x.text.length/x.d>15)add('w',i,'في '+nm+': الحوار «'+x.text.slice(0,18)+'…» سريع جدًا ('+Math.round(x.text.length/x.d)+' حرفًا/ث). زد المدة.')}});
     ['move','say','act'].forEach(function(ty){P.actors.forEach(function(a){
@@ -84,6 +84,7 @@ function drawThumbs(){
     var i=+c.dataset.thumb,sg=SEG[i];if(!sg)return;var q=c.getContext('2d');q.setTransform(c.width/W,0,0,c.width/W,0,0);
     var s=P.scenes[i];drawScene(q,s,clamp(s.dur*.6,.4,s.dur-.4),sg.t0+s.dur*.6)});
   Array.prototype.forEach.call(document.querySelectorAll('[data-gal]'),function(c){var p0=GAL[+c.dataset.gal],q=c.getContext('2d');q.setTransform(1,0,0,1,0,0);q.clearRect(0,0,c.width,c.height);
+    if(p0.k==='asset'){var as=typeof ASSETS!=='undefined'&&ASSETS[p0.id];if(as){var ai=new Image();ai.onload=function(){var h=124,w=ai.width*h/ai.height;if(w>96){w=96;h=w*ai.height/ai.width}q.drawImage(ai,50-w/2,126-h,w,h)};ai.src=as.img}return}
     if(p0.k==='hero'){if(typeof HERO!=='undefined'){var hi=new Image();hi.onload=function(){var h=124,w=hi.width*h/hi.height;q.drawImage(hi,50-w/2,126-h,w,h)};hi.src=HERO.img}return}
     drawActor(q,{id:'g'+c.dataset.gal,kind:p0.k,color:p0.c,accent:p0.a,hair:p0.h,pants:p0.p},{px:50,py:122,sc:.42,face:1,lift:0,rot:0,sx:1,sy:1,phase:0,walk:false,emo:'happy',talk:false,seed:1},0)});
   Array.prototype.forEach.call(document.querySelectorAll('[data-model]'),function(c){drawModel(c,actorOf(c.dataset.model))});

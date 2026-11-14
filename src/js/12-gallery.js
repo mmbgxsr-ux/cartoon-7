@@ -1,8 +1,15 @@
 'use strict';
 /* ---------- gallery & photos ---------- */
-var GAL=[{n:'سامي (الشخصية الرئيسية)',k:'hero'},{n:'سامي (الدرس)',k:'boy',c:'#d62828',a:'#f5c9a0',h:'#7a4a2a',p:'#2b59b8'},{n:'صديق سامي',k:'boy',c:'#3a8ee0',a:'#8a5a3c',h:'#1b1b1b',p:'#4a4f60'},{n:'منى (الراوية)',k:'girl',c:'#f2b134',a:'#f5c9a0',h:'#3b2415'},{n:'ميمو',k:'cat',c:'#f4a259',a:'#ffe6c7'},{n:'كريم',k:'boy',c:'#3a86ff',a:'#f1c27d'},{n:'ليلى',k:'girl',c:'#e76f51',a:'#f1c27d'},{n:'لولو',k:'rabbit',c:'#efe9f7',a:'#ffd6e0'},
+var GAL=[{n:'سامي (الشخصية الرئيسية)',k:'hero'},{n:'سامي (مشي وأوضاع من الصور)',k:'asset',id:'sami'},{n:'يوسف صديق سامي (من الصور)',k:'asset',id:'friend'},{n:'مكبّر الصوت الساحر',k:'asset',id:'wizard'},{n:'الجهاز السحري',k:'asset',id:'remote'},{n:'سامي (الدرس)',k:'boy',c:'#d62828',a:'#f5c9a0',h:'#7a4a2a',p:'#2b59b8'},{n:'صديق سامي',k:'boy',c:'#3a8ee0',a:'#8a5a3c',h:'#1b1b1b',p:'#4a4f60'},{n:'منى (الراوية)',k:'girl',c:'#f2b134',a:'#f5c9a0',h:'#3b2415'},{n:'ميمو',k:'cat',c:'#f4a259',a:'#ffe6c7'},{n:'كريم',k:'boy',c:'#3a86ff',a:'#f1c27d'},{n:'ليلى',k:'girl',c:'#e76f51',a:'#f1c27d'},{n:'لولو',k:'rabbit',c:'#efe9f7',a:'#ffd6e0'},
   {n:'بولت',k:'robot',c:'#6c8ead',a:'#ffd166'},{n:'سمسم',k:'cat',c:'#8d99ae',a:'#e8eaf0'},{n:'نور',k:'girl',c:'#8338ec',a:'#e0b184'},{n:'جزرة',k:'rabbit',c:'#f4a259',a:'#fff1d6'}];
 var IMGC={};
+/* شخصية صورة جاهزة (ASSETS) كممثل في المشروع */
+function assetActor(id,name,as){
+  var a={id:id,name:name,kind:'img',color:'#8d99ae',accent:'#e8eaf0',img:as.img};
+  if(as.poses)a.poses=Object.assign({},as.poses);
+  if(as.strips){a.strips={};Object.keys(as.strips).forEach(function(k){a.strips[k]=Object.assign({},as.strips[k])})}
+  return a;
+}
 function getImgKey(key,src){var c=IMGC[key];if(!c||c.src!==src){var im=new Image();c=IMGC[key]={src:src,im:im,ok:false};im.onload=function(){c.ok=true;drawNow();drawThumbs()};im.src=src}return c.ok?c.im:null}
 var POSEN={happy:'سعيد',sad:'حزين',surprised:'متفاجئ',angry:'غاضب',sleepy:'نعسان',scared:'خائف',love:'محب',talk:'يتكلم',walk:'يمشي'};
 function drawImgActor(g,a,p,T){
@@ -10,24 +17,32 @@ function drawImgActor(g,a,p,T){
   Object.keys(ps).forEach(function(k){getImgKey('a'+a.id+':'+k,ps[k])});
   function pick(k){if(!ps[k])return null;var c=IMGC['a'+a.id+':'+k];return c&&c.ok&&c.src===ps[k]?c.im:null}
   var fl=a.dir==='L'?-1:1,sp=stripPick(a,p,T);
-  if(sp&&p.emo&&p.emo!=='neutral'&&ps[p.emo]&&(sp.act==='idle'||sp.act==='talk'))sp=null;
+  if(sp&&p.emo&&p.emo!=='neutral'&&ps[p.emo]&&(sp.act==='idle'||sp.act==='talk')&&p.emo!=='happy')sp=null;
   if(sp){var sim=getImgKey('s'+a.id+':'+sp.key,sp.s.img);
     if(sim){var k2=Hs/sp.s.h,cw2=sp.s.cw*k2,ch2=sp.s.ch*k2;
       if(sp.act==='walk'||sp.act==='run'){g.translate(0,p.lift);g.rotate(-p.rot)}
       if(sp.act==='jump')g.scale(1/p.sx,1/p.sy);
-      g.scale(fl,1);g.drawImage(sim,sp.i*sp.s.cw,0,sp.s.cw,sp.s.ch,-cw2/2,-ch2,cw2,ch2);g.scale(fl,1);
+      if(sp.act==='talk'){/* تمايل خفيف وتنفّس ونبضة عند بداية الجملة، حول القدمين */
+        var tk=p.kick||0,to=p.tOpen||0;g.rotate(Math.sin(T*2.1+(p.seed||0))*.01+tk*.012);g.scale(1-to*.006-tk*.012,1+to*.014+tk*.03)}
+      g.scale(fl,1);g.drawImage(sim,sp.i*sp.s.cw,0,sp.s.cw,sp.s.ch,-cw2/2,-ch2,cw2,ch2);
+      if(sp.j!=null&&sp.mx>.03){var ga=g.globalAlpha;g.globalAlpha=ga*sp.mx;g.drawImage(sim,sp.j*sp.s.cw,0,sp.s.cw,sp.s.ch,-cw2/2,-ch2,cw2,ch2);g.globalAlpha=ga}
+      g.scale(fl,1);
       if(p.emo&&p.emo!=='neutral')imgExtras(g,p.emo,cw2,ch2,T);
       return}}
-  var cand=null;
+  var cand=null,emoOK=!!(p.emo&&p.emo!=='neutral'&&ps[p.emo]);
+  if(emoOK)hasEmo=true;
   if(p.walk&&Math.sin(p.phase)>0)cand=pick('walk');
-  if(!cand&&p.talk&&p.vis&&p.vis[0]>5)cand=pick('talk');
-  if(p.emo&&p.emo!=='neutral'&&ps[p.emo]){hasEmo=true;if(!cand)cand=pick(p.emo)}
+  /* الوضعية تثبت طوال الجملة (انفعال ثم كلام) بدل القفز بينها مع كل مقطع صوتي */
+  if(!cand&&emoOK)cand=pick(p.emo);
+  if(!cand&&p.talk)cand=pick('talk');
   if(cand)im=cand;
   if(!im){g.fillStyle='rgba(120,130,150,.45)';rr(g,-55,-Hs,110,Hs,22);g.fill();return}
   var w=im.width*Hs/im.height,h=Hs;if(w>300){w=300;h=w*im.height/im.width}
   var sx=1,sy=1,rot=0,dx=0;
   if(p.walk){var wv=Math.abs(Math.sin(p.phase));rot+=Math.sin(p.phase)*.07;sy*=1-wv*.035;sx*=1+wv*.02}
-  if(p.talk)sy*=1+Math.sin(T*10+p.seed)*.03;
+  if(p.talk){var am=p.amp!=null?p.amp:.5;sy*=1+am*.018;sx*=1-am*.008}
+  var kk=p.kick||0;if(kk){sy*=1+kk*.035;sx*=1-kk*.02;rot+=kk*.012}
+  if(!p.walk&&!p.act)rot+=Math.sin(T*.8+(p.seed||0))*.006;
   if(!hasEmo){var e=p.emo;
     if(e==='happy')sy*=1+Math.abs(Math.sin(T*5))*.03;
     else if(e==='sad'){rot+=.04;sy*=.96}
@@ -236,10 +251,11 @@ function readImage(fl,maxDim,cb){
 }
 function pickImage(cb,maxDim){var f=document.createElement('input');f.type='file';f.accept='image/*';f.onchange=function(){readImage(f.files&&f.files[0],maxDim,cb)};f.click()}
 function encAlpha(c){var u=c.toDataURL('image/webp',.85);if(u.indexOf('data:image/webp')!==0)u=c.toDataURL('image/png');return u}
-function addToScene(id){var sc=cur();if(!sc.cast.some(function(c){return c.actor===id})){var n=newCast();n.actor=id;sc.cast.push(n)}}
+function addToScene(id){var sc=cur();if(!sc.cast.some(function(c){return c.actor===id})){var n=newCast();n.actor=id;if(typeof BGY!=='undefined'&&Object.prototype.hasOwnProperty.call(BGY,sc.bg))n.y=BGY[sc.bg];sc.cast.push(n)}}
 function addFromGallery(i){
   var p0=GAL[i];if(!p0)return;if(P.actors.length>=6){toast('الحد الأقصى 6 شخصيات، احذف شخصية أولًا');return}
   var nm=p0.n;while(P.actors.some(function(a){return a.name===nm}))nm=p0.n+' '+(Math.floor(Math.random()*90)+10);
+  if(p0.k==='asset'){var as=typeof ASSETS!=='undefined'&&ASSETS[p0.id];if(!as)return;var aid=uid();P.actors.push(assetActor(aid,as.name,as));addToScene(aid);refresh();renderPanel();toast('أضفت «'+as.name+'» من الصور'+(as.poses?' بأوضاعه':'')+(as.strips?' وشريط المشي':''));return}
   if(p0.k==='hero'){if(typeof HERO==='undefined')return;var hn=p0.n;var hid=uid();P.actors.push({id:hid,name:'سامي',kind:'img',color:'#8d99ae',accent:'#e8eaf0',img:HERO.img,poses:Object.assign({},HERO.poses)});addToScene(hid);refresh();renderPanel();toast('أضفت «سامي» بأوضاعه: تفكير، سعيد، غاضب، حزين');return}
   var id=uid();var na={id:id,name:nm,kind:p0.k,color:p0.c,accent:p0.a};if(p0.h)na.hair=p0.h;if(p0.p)na.pants=p0.p;P.actors.push(na);addToScene(id);refresh();renderPanel();toast('أضفت «'+nm+'» إلى المشروع والمشهد')}
 function addPhotoActor(){

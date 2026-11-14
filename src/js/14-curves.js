@@ -27,7 +27,13 @@ function curveRow(st){
   var c=st.curve||'auto';
   return '<div class="row" style="align-items:flex-end"><div style="flex:1"><label class="l">منحنى التسارع</label><select data-m="step" data-id="'+st.id+'" data-k="curve">'+opts(CRVN,c)+'</select></div>'+curveSVG(c,st.style)+'</div>';
 }
-function stepHTML(s){if(s.type==='sfx')return sfxHTML(s);
+function fxHTML(s){
+  return '<div class="step"><div class="row between"><span class="badge fx">مؤثر بصري</span><button class="btn sm dng" data-a="del-step" data-id="'+s.id+'">حذف</button></div><div class="row">'
+   +'<div><label class="l">المؤثر</label><select data-m="step" data-id="'+s.id+'" data-k="fx">'+opts(OVN,s.fx||'alert')+'</select></div>'
+   +num('البداية (ث)','step',s.id,'t',s.t,0,60,.1)+num('المدة (ث)','step',s.id,'d',s.d,.5,30,.1)+'</div>'
+   +(s.fx==='badge'?'<div><label class="l">نص الشارة</label><input type="text" maxlength="40" data-m="step" data-id="'+s.id+'" data-k="label" value="'+esc(s.label||'')+'"></div>':'')+'</div>';
+}
+function stepHTML(s){if(s.type==='sfx')return sfxHTML(s);if(s.type==='fx')return fxHTML(s);
   var h='<div class="step"><div class="row between"><span class="badge '+s.type+'">'+(s.type==='move'?'حركة':s.type==='act'?'إيماءة':'كلام')+'</span>'
    +'<button class="btn sm dng" data-a="del-step" data-id="'+s.id+'">حذف</button></div><div class="row">'
    +'<div><label class="l">الشخصية</label><select data-m="step" data-id="'+s.id+'" data-k="actor">'+actorOpts(s.actor)+'</select></div>'
@@ -50,7 +56,7 @@ function prodHTML(){
     +'<div><label class="l">يواجه اليسار</label><input type="checkbox" data-m="cast" data-id="'+c.actor+'" data-k="flip"'+(c.flip?' checked':'')+'></div></div></div>'});
   var free=P.actors.filter(function(a){return !s.cast.some(function(c){return c.actor===a.id})});
   if(free.length)h+='<div class="row"><select id="castAdd" style="flex:1">'+free.map(function(a){return '<option value="'+a.id+'">'+esc(a.name)+'</option>'}).join('')+'</select><button class="btn sm" data-a="add-cast">+ إضافة للمشهد</button></div>';
-  h+='<div class="row between"><h3>الحركة والحوار</h3><div class="row"><button class="btn sm pri" data-a="add-step" data-v="move">+ حركة</button><button class="btn sm pri" data-a="add-step" data-v="act">+ إيماءة</button><button class="btn sm pri" data-a="add-step" data-v="say">+ كلام</button><button class="btn sm pri" data-a="add-step" data-v="sfx">+ صوت</button></div></div>';
+  h+='<div class="row between"><h3>الحركة والحوار</h3><div class="row"><button class="btn sm pri" data-a="add-step" data-v="move">+ حركة</button><button class="btn sm pri" data-a="add-step" data-v="act">+ إيماءة</button><button class="btn sm pri" data-a="add-step" data-v="say">+ كلام</button><button class="btn sm pri" data-a="add-step" data-v="sfx">+ صوت</button><button class="btn sm pri" data-a="add-step" data-v="fx">+ مؤثر بصري</button></div></div>';
   var st=s.steps.slice().sort(function(a,b){return a.t-b.t});
   if(!st.length)h+='<p class="hint">لا توجد خطوات بعد. أضف حركة أو جملة حوار.</p>';
   st.forEach(function(x){h+=stepHTML(x)});

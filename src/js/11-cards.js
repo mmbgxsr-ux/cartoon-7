@@ -1,7 +1,9 @@
 'use strict';
 /* ---------- title & credits cards ---------- */
 function lumOf(hex){var n=parseInt(hex.slice(1),16),r=n>>16&255,g2=n>>8&255,b=n&255;return (.299*r+.587*g2+.114*b)/255}
-function drawCardBG(g,sc){var c=BGC[sc.bg]||BGC.night,gr=g.createLinearGradient(0,0,0,H);gr.addColorStop(0,c[0]);gr.addColorStop(1,c[1]);g.fillStyle=gr;g.fillRect(0,0,W,H)}
+function drawCardBG(g,sc){
+  if(typeof BGIMG!=='undefined'&&Object.prototype.hasOwnProperty.call(BGIMG,sc.bg)){drawBG(g,sc.bg,0);g.fillStyle='rgba(12,20,50,.58)';g.fillRect(0,0,W,H);return}
+  var c=BGC[sc.bg]||BGC.night,gr=g.createLinearGradient(0,0,0,H);gr.addColorStop(0,c[0]);gr.addColorStop(1,c[1]);g.fillStyle=gr;g.fillRect(0,0,W,H)}
 function drawCardText(g,sc,lt){
   var c=BGC[sc.bg]||BGC.night,col=lumOf(c[0])>.55?'#1b2340':'#ffffff',lines=String(sc.t2||'').split('\n');
   g.save();g.textAlign='center';g.textBaseline='middle';g.fillStyle=col;g.shadowColor='rgba(0,0,0,.25)';g.shadowBlur=12;
@@ -10,6 +12,15 @@ function drawCardText(g,sc,lt){
     var all=[{t:sc.t1||'',s:64,w:800}].concat(lines.map(function(l){return{t:l,s:38,w:600}})),lh=70,total=all.length*lh,
         y0=H+40-(lt/sc.dur)*(H+total+80);
     all.forEach(function(r,i){if(!r.t)return;fit(r.t,r.s,r.w);g.fillText(r.t,W/2,y0+i*lh+(i?30:0))});
+  }else if(sc.mode==='list'){
+    var items=lines.filter(function(l){return l.trim()}),AR='١٢٣٤٥٦٧٨٩',ty=H*.2,ta=clamp(lt/.6,0,1);
+    g.globalAlpha=ta;fit(sc.t1||'',84,800);g.fillText(sc.t1||'',W/2,ty+(1-ta)*20);
+    items.forEach(function(it,k){var u=clamp((lt-(.9+k*1.3))/.5,0,1);if(u<=0)return;
+      var y=H*.38+k*H*.17,sz=fit(it,46,700),tw=g.measureText(it).width,rw=tw+96,rx=W/2+rw/2,dx=(1-ease(u))*60;
+      g.globalAlpha=u*clamp((sc.dur-lt)/.5,0,1);
+      g.fillStyle='#ffd166';g.beginPath();g.arc(rx-30-dx,y,30,0,7);g.fill();
+      g.fillStyle='#1b2340';g.font='800 34px '+FONT;g.fillText(AR.charAt(k)||String(k+1),rx-30-dx,y+2);
+      g.fillStyle=col;g.font='700 '+sz+'px '+FONT;g.textAlign='right';g.direction='rtl';g.fillText(it,rx-84-dx,y);g.textAlign='center'})
   }else{
     var a=clamp(lt/.7,0,1)*clamp((sc.dur-lt)/.5,0,1),dy=(1-clamp(lt/.7,0,1))*24;g.globalAlpha=a;
     var n=lines.filter(function(l){return l}).length,base=H/2-(n?24*n:0);
@@ -23,7 +34,7 @@ function cardHTML(sc){
   var h='<div class="row between"><h3>'+(sc.mode==='credits'?'شارات النهاية':'بطاقة العنوان')+'</h3></div>';
   h+='<div><label class="l">النص الكبير</label><input type="text" data-m="scn" data-id="'+sc.id+'" data-k="t1" value="'+esc(sc.t1||'')+'"></div>';
   h+='<div><label class="l">أسطر إضافية (سطر لكل اسم)</label><textarea rows="5" data-m="scn" data-id="'+sc.id+'" data-k="t2" style="width:100%">'+esc(sc.t2||'')+'</textarea></div>';
-  h+='<div class="row"><div><label class="l">النمط</label><select data-m="scn" data-id="'+sc.id+'" data-k="mode"><option value="title"'+(sc.mode!=='credits'?' selected':'')+'>عنوان ثابت</option><option value="credits"'+(sc.mode==='credits'?' selected':'')+'>شارات متحركة</option></select></div>'
+  h+='<div class="row"><div><label class="l">النمط</label><select data-m="scn" data-id="'+sc.id+'" data-k="mode"><option value="title"'+(sc.mode!=='credits'?' selected':'')+'>عنوان ثابت</option><option value="credits"'+(sc.mode==='credits'?' selected':'')+'>شارات متحركة</option><option value="list"'+(sc.mode==='list'?' selected':'')+'>قائمة خطوات تظهر تباعًا</option></select></div>'
     +'<div><label class="l">اللون</label><select data-m="scn" data-id="'+sc.id+'" data-k="bg">'+opts(cardMap(),sc.bg)+'</select></div>'
     +'<div><label class="l">المؤثر البصري</label><select data-m="scn" data-id="'+sc.id+'" data-k="fx">'+opts(FXN,sc.fx||'none')+'</select></div>'
     +'<div><label class="l">الكاميرا</label><select data-m="scn" data-id="'+sc.id+'" data-k="cam">'+opts(CAMN,sc.cam||'fixed')+'</select></div>'

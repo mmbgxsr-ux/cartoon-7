@@ -22,25 +22,47 @@ function Y(a,t,d,text,emo){return{type:'say',actor:a,t:t,d:d,text:text,emo:emo}}
 function X(t,sfx){return{type:'sfx',t:t,d:.5,sfx:sfx}}
 function C(a,x,y,flip){return{actor:a,x:x,y:y,flip:!!flip}}
 
+/* السطر: [الشخصية، النص، التعبير، خيارات]. الخيارات: d مدة الجملة، fx مؤثر بصري (مع fxo إزاحة وfxd مدة)، sfx مؤثر صوتي (مع sfxo إزاحة)، bd شارة على الشاشة (مع bdo إزاحة وbdd مدة)، وإن احتوت «=» فهي لافتة مفردة بلون أزرق، ac إيماءة (مع acd مدة)، mv حركة [x,y,النمط,المدة] تبدأ مع الجملة */
 function lessonScene(title,bg,cast,lines,extra){
-  var t=.5,steps=[];lines.forEach(function(l){var d=Math.min(12,Math.max(2.6,Math.round((l[1].length*.075+.8)*10)/10));steps.push(Y(l[0],t,d,l[1],l[2]));t+=d+.3});
+  var t=.5,steps=[];lines.forEach(function(l){var o=l[3]||{},d=o.d||Math.min(12,Math.max(2.6,Math.round((l[1].length*.075+.8)*10)/10));
+    steps.push(Y(l[0],t,d,l[1],l[2]));
+    if(o.fx)steps.push({type:'fx',fx:o.fx,t:+(t+(o.fxo||0)).toFixed(1),d:o.fxd||d});
+    if(o.bd){var vq=o.bd.indexOf('=')>=0,bo=o.bdo,bdd=o.bdd;
+      if(vq){var w0=o.bd.split('=')[0].trim(),ix=l[1].indexOf(w0);
+        if(bo==null){bo=ix>=0?ix/Math.max(1,l[1].length)*d*.8+.45:.6;bo=Math.max(.3,Math.min(bo,d-.6))}
+        if(bdd==null)bdd=Math.min(2.8,d-bo+.9)}
+      steps.push({type:'fx',fx:'badge',label:o.bd,t:+(t+(bo||0)).toFixed(1),d:bdd||d});
+      if(vq)steps.push(X(+(t+(bo||0)).toFixed(1),'pop'))}
+    if(o.sfx)steps.push(X(+(t+(o.sfxo||0)).toFixed(1),o.sfx));
+    if(o.ac)steps.push({type:'act',actor:l[0],t:+(t+(o.aco||0)).toFixed(1),d:o.acd||1.5,act:o.ac});
+    if(o.mv)steps.push(M(l[0],+(t+(o.mvo||0)).toFixed(1),o.mv[3]||1.6,o.mv[0],o.mv[1],o.mv[2]||'walk'));
+    t+=d+.3});
   (extra||[]).forEach(function(e){steps.push(e)});
   return{title:title,bg:bg,dur:Math.min(40,Math.ceil(t+.7)),cast:cast,steps:steps}}
+function V(sc,cam,trans){sc.cam=cam;sc.trans=trans;return sc}
 function lessonProject(hero){
   var S1='a1',F='a2',N='a3';
-  var a0=hero&&typeof HERO!=='undefined'?{id:S1,name:'سامي',kind:'img',color:'#8d99ae',accent:'#e8eaf0',img:HERO.img,poses:HERO.poses}:A(S1,'سامي','boy','#d62828','#f5c9a0','#7a4a2a','#2b59b8');
-  return{title:'فكّر قليلًا.. تربح كثيرًا',music:'calm',actors:[a0,A(F,'يوسف','boy','#3a8ee0','#8a5a3c','#1b1b1b','#4a4f60'),A(N,'منى','girl','#f2b134','#f5c9a0','#3b2415')],scenes:[
-  {kind:'card',title:'العنوان',mode:'title',t1:'فكّر قليلًا.. تربح كثيرًا',t2:'الوحدة الثانية: أخلاقي.. حياتي',bg:'day',dur:5},
-  lessonScene('الجهاز السحري','day',[C(S1,30,84),C(N,72,84,true)],[[N,'تخيّل أن لديك جهازًا سحريًا للتحكم عن بُعد، يوقف نفسك في أي لحظة تشعر فيها أنك توشك أن تفعل شيئًا دون تفكير.','happy'],[S1,'جهاز سحري؟ وهل هو موجود فعلًا؟','surprised'],[N,'نعم! إنه موجود بالفعل داخل عقلك.','happy']]),
-  lessonScene('الغضب','room',[C(S1,25,84),C(F,75,84,true),C(N,50,88)],[[N,'هل مرّ بك شعور كهذا؟ تريد أن تصرخ لأنك غاضب!','neutral'],[S1,'لماذا أخذت ساندويتشي؟!','angry'],[F,'أنا آسف، لم أقصد!','scared']],[M(S1,.5,2.5,38,84,'walk')]),
-  lessonScene('التسرّع','day',[C(S1,35,84),C(N,70,84,true)],[[N,'وتريد أن تجيب عن سؤال بسرعة قبل أن تسمع السؤال كاملًا.','neutral'],[S1,'أعرف الإجابة! أنا أعرفها!','happy'],[N,'لكن السؤال لم ينتهِ بعد!','surprised']]),
-  lessonScene('الشراء بلا تفكير','day',[C(S1,30,84),C(F,70,84,true),C(N,50,88)],[[N,'وتريد شراء شيء لمجرد أنك رأيته، دون التفكير في ثمنه أو الحاجة إليه.','neutral'],[S1,'ما أجمل هذه اللعبة! سأشتريها الآن!','love'],[F,'وهل تحتاجها فعلًا يا سامي؟','surprised']]),
-  lessonScene('الندم','room',[C(S1,50,84),C(N,18,88)],[[S1,'ليتني فكّرت قبل أن أتصرف..','sad'],[N,'معظم الأخطاء التي نقع فيها تحدث لأننا لا نتحكم في انفعالاتنا حين نكون مندفعين.','neutral'],[N,'والاندفاع يعني أن تتصرف قبل أن تفكر.','neutral'],[S1,'وأنا أندم بعدها كثيرًا.','sad']]),
-  lessonScene('الاندفاع المفيد','day',[C(F,30,84),C(N,70,84,true)],[[N,'وقد يكون الاندفاع مفيدًا أحيانًا، مثل إنقاذ شخص في خطر.','neutral'],[N,'لكن في كثير من الأحيان يجعلنا نندم، لأننا لم نمنح عقولنا وقتًا للتفكير.','sad'],[F,'إذن كيف نفعّل جهاز التحكم في انفعالاتنا؟','surprised']]),
-  lessonScene('الإشارة الحمراء','forest',[C(S1,35,84),C(N,70,84,true)],[[N,'أولًا انتبه إلى الإشارة الحمراء، وهي تنبّهك أنك في حالة اندفاع.','neutral'],[N,'فعندما تشعر أن قلبك ينبض بسرعة، أو أن صوتًا بداخلك يقول: افعلها الآن!','neutral'],[S1,'قلبي يدق بسرعة!','scared'],[N,'هذه إشارة أنك على وشك الاندفاع.','surprised']],[X(9.5,'ding')]),
-  lessonScene('زر التوقف','forest',[C(S1,45,84),C(N,78,86,true)],[[N,'فعليك أن تستخدم الجهاز: توقّف للحظة، وخذ نفسًا عميقًا.','happy'],[S1,'شهيق.. وزفير..','sleepy'],[N,'وأعطِ نفسك فرصة لتفكّر في النتائج التي تترتب على هذا الفعل.','neutral'],[S1,'الآن أستطيع أن أفكر بهدوء.','happy']],[X(.3,'pop')]),
-  lessonScene('القرار الصائب','room',[C(S1,28,84),C(F,72,84,true),C(N,50,88)],[[F,'آسف يا سامي، أخذت ساندويتشك بالخطأ.','sad'],[S1,'لا بأس! سنتقاسمه معًا.','happy'],[N,'هكذا يعمل جهاز التحكم: فكّر أولًا، ثم تصرّف.','happy']],[X(8,'tada')]),
-  lessonScene('والآن أخبرنا','day',[C(S1,30,84),C(N,70,84,true)],[[N,'والآن أخبرنا: ماذا تفعل عندما تكون غاضبًا أو متسرعًا؟','happy'],[N,'هل سبق أن اتخذت قرارًا سريعًا ثم ندمت عليه لاحقًا؟','neutral'],[N,'وهل سبق أن اتخذت قرارًا بعد تفكير ثم تأكدت أنه كان صائبًا؟ صف لنا الموقف.','happy']]),
+  var AS=hero&&typeof ASSETS!=='undefined'?ASSETS:null,R4='a4',W5='a5';
+  var a0=AS?assetActor(S1,'سامي',AS.sami):hero&&typeof HERO!=='undefined'?{id:S1,name:'سامي',kind:'img',color:'#8d99ae',accent:'#e8eaf0',img:HERO.img,poses:HERO.poses}:A(S1,'سامي','boy','#d62828','#f5c9a0','#7a4a2a','#2b59b8');
+  var a1=AS?assetActor(F,'يوسف',AS.friend):A(F,'يوسف','boy','#3a8ee0','#8a5a3c','#1b1b1b','#4a4f60');
+  var a2=AS&&AS.mona?assetActor(N,'منى',AS.mona):A(N,'منى','girl','#f2b134','#f5c9a0','#3b2415');
+  var acts=[a0,a1,a2];
+  if(AS){acts.push(assetActor(R4,'الجهاز السحري',AS.remote));acts.push(assetActor(W5,'مكبّر الصوت الساحر',AS.wizard))}
+  /* الأدوات (R4, W5) تُحذف تلقائيًا من المشاهد إن لم تكن ضمن الممثلين */
+  return{title:'فكّر قليلًا.. تربح كثيرًا',music:'calm',actors:acts,scenes:[
+  {kind:'card',title:'العنوان',mode:'title',t1:'فكّر قليلًا.. تربح كثيرًا',t2:'الوحدة الثانية: أخلاقي.. حياتي',bg:'school',dur:5},
+  V(lessonScene('لحظة اندفاع','hallway',[C(S1,25,84),C(F,75,84,true),C(N,100,88,true)],[[S1,'لماذا أخذت ساندويتشي؟!','angry'],[F,'أنا آسف، لم أقصد!','scared',{mv:[82,86,'slide',1.2]}],[S1,'دائمًا تفعل هذا! لن أكلّمك بعد اليوم!','angry',{ac:'jump',acd:1}],[F,'كنت جائعًا ونسيت طعامي في البيت..','sad'],[N,'سامي، انتظر! ماذا حدث للتو؟','surprised']],[M(S1,.5,2.5,38,84,'walk'),M(N,8,4.5,50,88,'walk')]),'follow','cut'),
+  V(lessonScene('الجهاز السحري','livingroom',[C(R4,50,64),C(S1,28,84),C(N,74,84,true)],[[N,'ما حدث الآن اسمه الاندفاع: أن تتصرف قبل أن تفكر.','neutral'],[N,'تخيّل أن لديك جهازًا سحريًا للتحكم عن بُعد، يوقفك كلما كنت توشك أن تتصرف دون تفكير.','happy',{bd:'توشك = تقترب'}],[S1,'جهاز سحري؟ وهل هو موجود فعلًا؟','surprised',{ac:'jump',acd:1}],[N,'نعم! إنه موجود بالفعل داخل عقلك.','happy',{ac:'wave',acd:1.6}]]),'follow','cross'),
+  V(lessonScene('التسرّع','classroom',[C(S1,28,84),C(F,52,88),C(N,76,84,true)],[[F,'وتريد أن تجيب عن سؤال بسرعة قبل أن تسمع السؤال كاملًا.','neutral'],[S1,'أعرف الإجابة! أنا أعرفها!','happy',{ac:'jump',acd:1.4}],[N,'لكن السؤال لم ينتهِ بعد!','surprised']]),'panr','wipe'),
+  V(lessonScene('الشراء بلا تفكير','entrance',[C(S1,30,84),C(F,70,84,true),C(N,50,88)],[[N,'وتريد شراء شيء لمجرد أنك رأيته، دون التفكير في ثمنه أو الحاجة إليه.','neutral'],[S1,'ما أجمل هذه اللعبة! سأشتريها الآن!','love',{mv:[40,84,'hop',1.6]}],[F,'وهل تحتاجها فعلًا يا سامي؟','surprised']]),'panl','slide'),
+  V(lessonScene('الندم','bedroom',[C(S1,50,84),C(N,18,88),C(F,82,86,true)],[[S1,'ليتني فكّرت قبل أن أتصرف..','sad',{ac:'bow',acd:2}],[N,'معظم الأخطاء التي نقع فيها تحدث لأننا لا نتحكم في انفعالاتنا حين نكون مندفعين.','neutral'],[F,'والاندفاع يعني أن تتصرف قبل أن تفكر.','neutral'],[S1,'وأنا أندم بعدها كثيرًا.','sad']]),'zout','fade'),
+  V(lessonScene('الاندفاع المفيد','playground',[C(F,26,84),C(S1,50,88),C(N,76,84,true)],[[F,'وقد يكون الاندفاع مفيدًا أحيانًا.','happy'],[F,'تخيّل أن دراجة تسرع نحو طفل صغير!','surprised'],[S1,'سأركض وأسحبه فورًا!','scared',{mv:[36,88,'run',1.4]}],[N,'صحيح! هذا اندفاع مفيد، لأنه ينقذ شخصًا في خطر.','happy'],[N,'لكن في كثير من الأحيان يجعلنا نندم، لأننا لم نمنح عقولنا وقتًا للتفكير.','sad',{bd:'الأحيان = الأوقات · نمنح = نعطي'}],[S1,'إذن كيف نفعّل جهاز التحكم في انفعالاتنا؟','surprised',{bd:'نفعّل = نشغّل'}]]),'panr','slide'),
+  V(lessonScene('الإشارة الحمراء','magicforest',[C(R4,46,63),C(S1,24,84),C(N,68,84,true),C(F,88,86,true)],[[N,'أولًا انتبه إلى الإشارة الحمراء، وهي تنبّهك أنك في حالة اندفاع.','neutral',{fx:'alert',fxo:1.2,fxd:3.6,bd:'١ · انتبه'}],[F,'فعندما تشعر أن قلبك ينبض بسرعة، أو أن صوتًا بداخلك يقول: افعلها الآن!','neutral',{bd:'ينبض = يدق'}],[S1,'قلبي يدق بسرعة!','scared',{fx:'pulse',fxd:3.2}],[F,'هذه إشارة أنك على وشك الاندفاع.','surprised',{sfx:'ding'}]]),'follow','cross'),
+  V(lessonScene('زر التوقف','garden',[C(S1,22,84),C(R4,46,64),C(F,68,88,true),C(N,88,84,true)],[[N,'فعليك أن تستخدم الجهاز: توقّف للحظة، وخذ نفسًا عميقًا.','happy',{bd:'٢ · توقّف وتنفّس'}],[S1,'شهيق..','sleepy',{d:4,fx:'breath',fxd:8,mv:[34,84,'walk',2]}],[S1,'وزفير..','sleepy',{d:3.7}],[F,'وأعطِ نفسك فرصة لتفكّر في النتائج التي تترتب على هذا الفعل.','neutral',{bd:'٣ · فكّر ثم تصرّف'}],[S1,'الآن أستطيع أن أفكر بهدوء.','happy']],[X(.3,'pop')]),'zin','cross'),
+  {kind:'card',title:'نعيد المشهد',mode:'title',t1:'نعيد المشهد من جديد',t2:'لكن هذه المرة.. بالجهاز السحري',bg:'hallway',dur:4,trans:'wipe'},
+  V(lessonScene('القرار الصائب','hallway',[C(S1,25,84),C(F,75,84,true),C(N,50,88)],[[S1,'لماذا أخذت ساندويتشي؟!','angry',{fx:'alert',fxo:.2,fxd:2.4,bd:'١ · انتبه'}],[N,'سامي، ظهرت الإشارة الحمراء! توقّف وخذ نفسًا.','happy',{bd:'٢ · توقّف وتنفّس'}],[S1,'شهيق.. وزفير..','sleepy',{d:6.5,fx:'breath',fxd:6.5}],[F,'آسف يا سامي، أخذت ساندويتشك بالخطأ.','sad',{bd:'٣ · فكّر ثم تصرّف'}],[S1,'لا بأس! سنتقاسمه معًا.','happy'],[F,'وغدًا سأحضر لك ساندويتشًا مثله!','happy'],[N,'هكذا يعمل جهاز التحكم: فكّر أولًا، ثم تصرّف.','happy',{sfx:'tada',sfxo:.6}]],[M(S1,.5,2.5,38,84,'walk')]),'follow','wipe'),
+  V(lessonScene('والآن أخبرنا','classroom',[C(S1,20,84),C(W5,44,66),C(F,66,88,true),C(N,86,84,true)],[[N,'والآن أخبرنا: ماذا تفعل عندما تكون غاضبًا أو متسرعًا؟','happy',{ac:'wave',acd:1.6}],[F,'هل سبق أن اتخذت قرارًا سريعًا ثم ندمت عليه لاحقًا؟','neutral',{bd:'لاحقًا = فيما بعد'}],[S1,'وهل سبق أن اتخذت قرارًا بعد تفكير ثم تأكدت أنه كان صائبًا؟ صف لنا الموقف.','happy']]),'zout','cross'),
+  {kind:'card',title:'الخلاصة',mode:'list',t1:'الخلاصة: انتبه · توقّف · فكّر',t2:'انتبه للإشارة الحمراء\nتوقّف وخذ نفسًا عميقًا\nفكّر في النتائج ثم تصرّف',bg:'garden',dur:9},
   {kind:'card',title:'المفردات',mode:'credits',t1:'المفردات الجديدة',t2:'توشك: تقترب · الأحيان: الأوقات\nنمنح: نعطي، وضدها نمنع\nينبض: يدق · لاحقًا: فيما بعد\nتفعيل: تشغيل، وضدها تعطيل',bg:'night',dur:9}]}}
 var TPL=[
  {n:'درس بسامي الرئيسي (من صورك)',b:function(){return lessonProject(true)}},

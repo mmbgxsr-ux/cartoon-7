@@ -93,6 +93,16 @@ function buildStrip(c,n,keyMode){
   return {img:encAlpha(out),n:n,cw:cwS,ch:hS,h:Math.max(8,Math.round(L.med*hS/L.H)),mode:L.mode,key:mode,stand:stand}
 }
 
+/* إيماءة مناسبة لنص الجملة: يد على الصدر عند ضمير المتكلم، وإصبع للتأكيد عند علامات التعجب والاستفهام وكلمات مثل «لكن» و«انتبه».
+   ترجع {k,u}: نوع الإيماءة وموضعها كنسبة من مدة الجملة، أو null */
+function gestFor(text){
+  var t=String(text||'').replace(/[\u064B-\u0652\u0640]/g,''),L=t.length;if(L<8)return null;
+  var a=t.search(/أنا|قلبي|نفسي|عقلي|أشعر|شعور|أحس|ضميري|ليتني/),b=t.search(/[!؟?]|لكن|انتبه|تذكر|دائما|أبدا|مهم/);
+  if(a<0&&b<0)return null;
+  var chest=a>=0&&(b<0||a<=b),ix=chest?a:b;
+  return {k:chest?'chest':'point',u:Math.min(.75,Math.max(.12,ix/L*.8))};
+}
+
 /* which strip and frame to show for this pose; null when the actor has no suitable strip */
 function stripPick(a,p,T){
   var st=a.strips;if(!st)return null;
@@ -108,14 +118,24 @@ function stripPick(a,p,T){
     views=moving&&p.view?[p.view,'side','front','back']:['front','side','back'],ai,vi;
   for(ai=0;ai<acts.length;ai++)for(vi=0;vi<views.length;vi++){
     var key=acts[ai]+':'+views[vi],s=st[key];if(!s)continue;
-    var n=s.n,i;
+    var n=s.n,i,j=null,mx=0;
     if(act==='walk'||act==='run')i=Math.floor((((p.phase/(2*Math.PI))%1)+1)%1*n)%n;
     else if(act==='jump')i=Math.min(n-1,Math.floor(clamp(pr,0,.999)*n));
     else if(act==='sit')i=Math.min(n-1,Math.floor(clamp(pr*1.5,0,.999)*n));
     else if(act==='wave')i=Math.floor(T*8)%n;
-    else if(act==='talk'&&acts[ai]==='talk')i=Math.round((p.vis?clamp(p.vis[0]/14,0,1):Math.abs(Math.sin(T*10+(p.seed||0))))*(n-1));
+    else if(act==='talk'&&acts[ai]==='talk'){
+      /* p.tOpen/p.tAny: فتح الفم مُنعَّم زمنيًا؛ الصورة 0 (فم مقفول، يد نازلة) فقط عند وقفة حقيقية، وإلا أصغر فتحة */
+      var m=s.m>=1&&s.m<=n?s.m:n;
+      if(p.tOpen!=null&&m>2){
+        /* فتح الفم المستمر يحدد صورتين متجاورتين ونسبة المزج بينهما (انتقال ناعم بدل القفز) */
+        var op=p.tN!=null?Math.min(1,p.tN/2):p.tAny?1:0,f=(1+clamp(p.tOpen,0,1)*(m-2))*op,lo=Math.floor(f),w=smoothstep(.35,.65,f-lo);
+        if(lo>=m-1){i=m-1}else if(w<.5){i=lo;j=lo+1;mx=w}else{i=lo+1;j=lo;mx=1-w}
+        /* إيماءة قصيرة تظهر وتختفي حول كلمة مفتاحية (p.gest، p.gw من 0 إلى 1) */
+        if(p.gest&&p.gw>0&&s.g&&s.g[p.gest]!=null&&op>=1){var G=s.g[p.gest],gw=clamp(p.gw,0,1);
+          if(gw>=.5){j=i;mx=1-gw;i=G}else{j=G;mx=gw}}}
+      else i=Math.round((p.vis?clamp(p.vis[0]/14,0,1):Math.abs(Math.sin(T*10+(p.seed||0))))*(m-1))}
     else i=Math.floor(T*3)%n;
-    return {s:s,i:i,key:key,act:act}}
+    return {s:s,i:i,key:key,act:act,j:j,mx:mx}}
   return null;
 }
 

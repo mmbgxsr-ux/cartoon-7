@@ -9,7 +9,14 @@ function pyramid(g,x,y,w,h){g.fillStyle='#e8b95f';g.beginPath();g.moveTo(x-w/2,y
   g.fillStyle='#c9953f';g.beginPath();g.moveTo(x,y-h);g.lineTo(x+w/2,y);g.lineTo(x+w*.1,y);g.closePath();g.fill()}
 function palm(g,x,y){g.strokeStyle='#7a5230';g.lineWidth=14;g.lineCap='round';g.beginPath();g.moveTo(x,y);g.quadraticCurveTo(x+28,y-90,x+8,y-170);g.stroke();
   g.strokeStyle='#2f9e5b';g.lineWidth=9;for(var i=0;i<6;i++){var a=-Math.PI/2+(i-2.5)*.55;g.beginPath();g.moveTo(x+8,y-170);g.quadraticCurveTo(x+8+Math.cos(a)*50,y-170+Math.sin(a)*40-14,x+8+Math.cos(a)*92,y-170+Math.sin(a)*70+26);g.stroke()}}
+/* خلفيات الصور الجاهزة (BGIMG في 20-assets-bg.js) */
+function drawBgAsset(g,k){
+  var im=getImgKey('bg:'+k,BGIMG[k]);
+  if(!im){sky(g,'#74c2ff','#d9f2ff',H);return}
+  g.drawImage(im,0,0,W,H);
+}
 function drawBG(g,k,T){
+  if(typeof BGIMG!=='undefined'&&Object.prototype.hasOwnProperty.call(BGIMG,k)){drawBgAsset(g,k);return}
   if(k==='night'){sky(g,'#0a0e2c','#2b2f6e',H);STARS.forEach(function(s){g.fillStyle='rgba(255,255,255,'+(.55+.45*Math.sin(T*2+s[3]))+')';g.beginPath();g.arc(s[0],s[1],s[2],0,7);g.fill()});
     sun(g,1040,130,48,'#fff6cf');hills(g,430,'#18304a',30,1);ground(g,470,'#1d3b45','#102a30')}
   else if(k==='sunset'){sky(g,'#3b2a6b','#ff7a59',H*.62);sun(g,820,420,70,'#ffd27a');hills(g,420,'#5b3a63',24,2);ground(g,468,'#6b3f5e','#3d2848');cloud(g,(180+T*6)%1500-120,120,1.1)}
